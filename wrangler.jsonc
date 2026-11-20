@@ -1,0 +1,9 @@
+{
+  // Cloudflare Workers 部署配置。纯静态站：没有 Worker 脚本，整个目录当静态资源。
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "whitdust",
+  "compatibility_date": "2026-11-20",
+  "assets": {
+    "directory": "./"
+  }
+}
