@@ -65,13 +65,26 @@ A网站/
 
 **踩过的坑**：给 zone 加第一条记录前 Cloudflare 不给激活；Worker 自定义域遇到「externally managed DNS records」要先删占位记录；新主机名的 DNS 有负缓存，最长 30 分钟才全球生效。
 
-### 更新一次内容要做什么
+### 更新一次内容要做什么（2026-11-20 起：自动部署）
 
-1. 改本地这个文件夹里的文件
-2. Cloudflare 面板 → Workers 与 Pages → `whitdust` → 新建部署 / 上传资源，把整个文件夹重新拖一遍
-3. 等十几秒，打开网站（域名见上表）看，顺手强刷一次
+推送即发布，不用再拖文件夹。
 
-命令行也能传（ Worker 资源用 `wrangler deploy`），但这台机器没装 wrangler，目前一律走面板。
+```powershell
+cd "C:\Users\eric0\Desktop\DSH工作区\大肥鱼\A网站"
+git add -A
+git commit -m "这次改了什么"
+git push
+```
+
+推完等一分钟左右，Cloudflare 自动拉代码、执行 `npx wrangler deploy`。打开 https://whitdust.com 强刷即可。
+
+- 仓库：https://github.com/whidust/whitdust-pub（公开）
+- 接法：Workers → `whitdust` → 设置 → 构建 → 连接 Git 仓库；分支 `main`；构建命令留空；部署命令 `npx wrangler deploy`
+- 仓库里的 `wrangler.jsonc` 说明“这是一个纯静态 Worker，当前目录就是资源目录”
+- `.assetsignore` 把 `.git/`、`wrangler.jsonc`、`.assetsignore` 排除在部署之外（已实测：`/.git/config` 和 `/wrangler.jsonc` 都返回 404）
+- 回退：在 GitHub 上找到要回退的提交，或者本地 `git revert` 后再推
+
+（本机不需要装 wrangler——构建时 Cloudflare 会在它自己的环境里跑。）
 
 ### 踩过的两个坑
 
