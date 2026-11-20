@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码换行处理工具 · 压缩 & 展开</title>
+    <style>
+        :root {
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --border: #d1d5db;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text: #1f2937;
+            --text-secondary: #4b5563;
+            --font-mono: 'Courier New', Courier, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --radius: 8px;
+            --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: var(--font-sans);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.25rem;
+        }
+
+        textarea {
+            width: 100%;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #f9fafb;
+            resize: vertical;
+            min-height: 300px;
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        textarea[readonly] {
+            background: #f9fafb;
+            cursor: default;
+        }
+
+        .stats-bar {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: #f8fafc;
+            border-left: 4px solid var(--primary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            min-height: 2.2rem;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+
+        .control-bar {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tab {
+            background: #e5e7eb;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .tab:hover:not(.active) {
+            background: #d1d5db;
+        }
+
+        .actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: #e5e7eb;
+            border: none;
+            padding: 0.6rem 1.4rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: #d1d5db;
+        }
+
+        .btn.primary {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn.primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn.success {
+            background: var(--success);
+            color: white;
+            font-weight: 500;
+        }
+
+        .btn.success:hover {
+            background: #15803d;
+        }
+
+        .global-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 700px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .actions-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .radio-group {
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+            .global-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: -0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="card">
+                <h2>📥 输入代码</h2>
+                <p class="subtitle">支持中英文混合、各类编程语言注释</p>
+                <textarea id="inputArea" placeholder="在此粘贴你的代码..."></textarea>
+            </div>
+            <div class="card">
+                <h2>📤 处理结果</h2>
+                <textarea id="outputArea" readonly placeholder="点击下方按钮查看处理结果"></textarea>
+                <div class="stats-bar" id="statsBar">📊 等待操作...</div>
+            </div>
+        </div>
+
+        <div class="control-bar">
+            <div class="tabs">
+                <button class="tab active" id="tabCompress">📦 压缩模式</button>
+                <button class="tab" id="tabExpand">🧠 展开模式</button>
+            </div>
+
+            <div id="compressPanel">
+                <div class="actions-row">
+                    <div class="radio-group">
+                        <label>
+                            <input type="radio" name="compressType" value="keepComments" checked> 📝 带注释、留空行
+                        </label>
+                        <label>
+                            <input type="radio" name="compressType" value="removeCommentsKeepBreaks"> 🧹 去注释、留空行
+                        </label>
+                        <label>
+                            <input type="radio" name="compressType" value="minify"> ⚡ 极限压缩（紧凑）
+                        </label>
+                    </div>
+                    <button class="btn primary" id="applyCompress">🚀 应用压缩</button>
+                </div>
+                <p class="subtitle" style="margin-top:0.3rem;">选择一种处理方式，每次基于原始输入执行</p>
+            </div>
+
+            <div id="expandPanel" style="display:none;">
+                <div class="actions-row">
+                    <button class="btn primary" id="applyExpand">🧠 智能展开</button>
+                    <span class="subtitle">自动插入换行与空行，增强代码可读性</span>
+                </div>
+            </div>
+
+            <div class="global-actions">
+                <button class="btn" id="resetBtn">🔄 恢复原始</button>
+                <button class="btn" id="copyBtn">📋 复制结果</button>
+                <button class="btn" id="downloadBtn">💾 下载 .txt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const inputArea = document.getElementById('inputArea');
+            const outputArea = document.getElementById('outputArea');
+            const statsBar = document.getElementById('statsBar');
+            const tabCompress = document.getElementById('tabCompress');
+            const tabExpand = document.getElementById('tabExpand');
+            const compressPanel = document.getElementById('compressPanel');
+            const expandPanel = document.getElementById('expandPanel');
+            const applyCompressBtn = document.getElementById('applyCompress');
+            const applyExpandBtn = document.getElementById('applyExpand');
+            const resetBtn = document.getElementById('resetBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+
+            let currentMode = 'compress';
+
+            function countLines(text) {
+                if (!text) return 0;
+                return text.split(/\r?\n/).length;
+            }
+
+            function removeComments(code) {
+                const result = [];
+                let i = 0;
+                let state = 'normal';
+                while (i < code.length) {
+                    const ch = code[i];
+                    if (state === 'normal') {
+                        if (ch === '/' && code[i + 1] === '/') {
+                            state = 'singleLineComment';
+                            i += 2;
+                            continue;
+                        } else if (ch === '/' && code[i + 1] === '*') {
+                            state = 'multiLineComment';
+                            i += 2;
+                            continue;
+                        } else if (ch === '#') {
+                            state = 'singleLineComment';
+                            i++;
+                            continue;
+                        } else if (ch === '"') {
+                            state = 'doubleString';
+                            result.push(ch);
+                            i++;
+                        } else if (ch === "'") {
+                            state = 'singleString';
+                            result.push(ch);
+                            i++;
+                        } else if (ch === '`') {
+                            state = 'templateString';
+                            result.push(ch);
+                            i++;
+                        } else {
+                            result.push(ch);
+                            i++;
+                        }
+                    } else if (state === 'singleString') {
+                        result.push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            result.push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === "'") {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'doubleString') {
+                        result.push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            result.push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === '"') {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'templateString') {
+                        result.push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            result.push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === '`') {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'singleLineComment') {
+                        while (i < code.length && code[i] !== '\n' && code[i] !== '\r') {
+                            i++;
+                        }
+                        if (i < code.length) {
+                            if (code[i] === '\r' && i + 1 < code.length && code[i + 1] === '\n') {
+                                result.push('\r\n');
+                                i += 2;
+                            } else {
+                                result.push(code[i]);
+                                i++;
+                            }
+                        }
+                        state = 'normal';
+                    } else if (state === 'multiLineComment') {
+                        while (i < code.length) {
+                            if (code[i] === '*' && i + 1 < code.length && code[i + 1] === '/') {
+                                i += 2;
+                                break;
+                            }
+                            if (code[i] === '\r' && i + 1 < code.length && code[i + 1] === '\n') {
+                                result.push('\r\n');
+                                i += 2;
+                            } else if (code[i] === '\n' || code[i] === '\r') {
+                                result.push(code[i]);
+                                i++;
+                            } else {
+                                i++;
+                            }
+                        }
+                        state = 'normal';
+                    }
+                }
+                return result.join('');
+            }
+
+            function removeExtraBlankLines(text) {
+                const lines = text.split(/\r?\n/);
+                const result = [];
+                let prevBlank = false;
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const isBlank = line.trim() === '';
+                    if (isBlank) {
+                        if (!prevBlank) {
+                            result.push('');
+                        }
+                        prevBlank = true;
+                    } else {
+                        result.push(line);
+                        prevBlank = false;
+                    }
+                }
+                while (result.length > 0 && result[0].trim() === '') result.shift();
+                while (result.length > 0 && result[result.length - 1].trim() === '') result.pop();
+                return result.join('\n');
+            }
+
+            function removeAllBlankLines(text) {
+                const lines = text.split(/\r?\n/);
+                const nonEmpty = lines.filter(function(line) { return line.trim() !== ''; });
+                return nonEmpty.join('\n');
+            }
+
+            function compressCode(text, type) {
+                if (type === 'keepComments') {
+                    return removeExtraBlankLines(text);
+                } else if (type === 'removeCommentsKeepBreaks') {
+                    const cleaned = removeComments(text);
+                    return removeExtraBlankLines(cleaned);
+                } else if (type === 'minify') {
+                    const cleaned = removeComments(text);
+                    const lines = cleaned.split(/\r?\n/);
+                    const meaningful = lines.filter(function(line) { return line.trim() !== ''; });
+                    const trimmedLines = meaningful.map(function(line) { return line.trim(); });
+                    return trimmedLines.join('');
+                }
+                return text;
+            }
+
+            // 新增：根据括号和分号插入基本换行（尊重字符串）
+            function insertStructuralBreaks(code) {
+                const result = [];
+                let i = 0;
+                let state = 'normal';
+                let lastChar = ''; // 记录上一个写入的字符，用于避免重复换行
+
+                function push(ch) {
+                    result.push(ch);
+                    lastChar = ch;
+                }
+
+                // 判断字符是否为换行
+                function isNewline(c) {
+                    return c === '\n' || c === '\r';
+                }
+
+                while (i < code.length) {
+                    const ch = code[i];
+                    if (state === 'normal') {
+                        if (ch === '"') {
+                            state = 'doubleString';
+                            push(ch);
+                            i++;
+                        } else if (ch === "'") {
+                            state = 'singleString';
+                            push(ch);
+                            i++;
+                        } else if (ch === '`') {
+                            state = 'templateString';
+                            push(ch);
+                            i++;
+                        } else if (ch === '/' && code[i + 1] === '/') {
+                            // 单行注释：直接输出到行尾
+                            while (i < code.length && !isNewline(code[i])) {
+                                push(code[i]);
+                                i++;
+                            }
+                            // 换行符将在后续处理中正常输出
+                        } else if (ch === '/' && code[i + 1] === '*') {
+                            // 多行注释：原样输出
+                            state = 'multiLineComment';
+                            push(ch);
+                            i++;
+                        } else if (ch === '{') {
+                            // 在 { 前插入换行，除非前面已经是换行或开头
+                            if (lastChar !== '' && !isNewline(lastChar) && lastChar !== '\n' && lastChar !== '\r') {
+                                push('\n');
+                            }
+                            push('{');
+                            i++;
+                        } else if (ch === '}') {
+                            push('}');
+                            // 在 } 后插入换行，除非下一个字符已经是换行或结束
+                            if (i + 1 < code.length && !isNewline(code[i + 1])) {
+                                push('\n');
+                            } else if (i + 1 === code.length) {
+                                // 结尾不额外加换行，但为了统一处理，我们可以先不加
+                            }
+                            i++;
+                        } else if (ch === ';') {
+                            push(';');
+                            // 在 ; 后插入换行，除非下一个字符已经是换行
+                            if (i + 1 < code.length && !isNewline(code[i + 1])) {
+                                // 避免 for (;;) 被拆分，简单的检查：前一个非空字符是否是 ; 或 (
+                                // 但这可能过度复杂，暂略；对于 CSS 没问题
+                                push('\n');
+                            }
+                            i++;
+                        } else {
+                            push(ch);
+                            i++;
+                        }
+                    } else if (state === 'singleString') {
+                        push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === "'") {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'doubleString') {
+                        push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === '"') {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'templateString') {
+                        push(ch);
+                        if (ch === '\\' && i + 1 < code.length) {
+                            push(code[i + 1]);
+                            i += 2;
+                        } else if (ch === '`') {
+                            state = 'normal';
+                            i++;
+                        } else {
+                            i++;
+                        }
+                    } else if (state === 'multiLineComment') {
+                        push(ch);
+                        if (ch === '*' && i + 1 < code.length && code[i + 1] === '/') {
+                            push('/');
+                            i += 2;
+                            state = 'normal';
+                        } else {
+                            i++;
+                        }
+                    }
+                }
+                return result.join('');
+            }
+
+            function expandCode(text) {
+                if (!text || text.trim() === '') return '';
+
+                // 第一步：根据括号和分号插入基本换行
+                let expanded = insertStructuralBreaks(text);
+
+                // 第二步：移除所有空行（包括刚刚插入可能产生的连续换行）
+                expanded = removeAllBlankLines(expanded);
+                const lines = expanded.split(/\r?\n/).filter(function(l) { return l.trim() !== ''; });
+
+                if (lines.length === 0) return '';
+
+                // 关键字集合（包括@开头的at-rule）
+                const keywordsBefore = new Set([
+                    'function', 'class', 'if', 'for', 'while', 'switch', 'try', 'catch', 'finally',
+                    'def', 'public', 'private', 'protected', 'static', 'export', 'import', 'async',
+                    'else', 'elif', 'unless', 'with', 'do', 'case', 'default', 'return'
+                ]);
+
+                const output = [];
+                for (let i = 0; i < lines.length; i++) {
+                    const curLine = lines[i];
+                    const trimmed = curLine.trim();
+                    const firstWord = trimmed.split(/\s+/)[0] || '';
+
+                    // 在关键字或@规则前插入空行
+                    if (i > 0 && (keywordsBefore.has(firstWord) || firstWord.startsWith('@'))) {
+                        if (output.length > 0 && output[output.length - 1].trim() !== '') {
+                            output.push('');
+                        }
+                    }
+
+                    output.push(curLine);
+
+                    // 在单独的 } 后插入空行
+                    if (trimmed === '}' && i < lines.length - 1) {
+                        const nextLine = lines[i + 1];
+                        const nextTrimmed = nextLine.trim();
+                        const noSpaceAfter = /^(else|catch|finally|while)\b/.test(nextTrimmed);
+                        if (!noSpaceAfter) {
+                            if (output.length > 0 && output[output.length - 1].trim() !== '') {
+                                output.push('');
+                            }
+                        }
+                    }
+                }
+
+                // 最后再压缩一次多余空行，确保整洁
+                return removeExtraBlankLines(output.join('\n'));
+            }
+
+            function updateOutput(processedText, originalText) {
+                outputArea.value = processedText;
+                const origLines = countLines(originalText);
+                const newLines = countLines(processedText);
+                const origChars = originalText.length;
+                const newChars = processedText.length;
+                const charDiff = origChars - newChars;
+
+                let diffText = '';
+                if (newLines > origLines) {
+                    diffText = '净增加 ' + (newLines - origLines) + ' 行';
+                } else if (newLines < origLines) {
+                    diffText = '净减少 ' + (origLines - newLines) + ' 行';
+                } else {
+                    diffText = '行数不变';
+                }
+
+                let charInfo = '';
+                if (charDiff > 0) {
+                    charInfo = ' · 减少 <strong>' + charDiff + '</strong> 字符';
+                } else if (charDiff < 0) {
+                    charInfo = ' · 增加 <strong>' + Math.abs(charDiff) + '</strong> 字符';
+                } else {
+                    charInfo = ' · 字符数不变';
+                }
+
+                statsBar.innerHTML = '📊 处理前 <strong>' + origLines + '</strong> 行 / <strong>' + origChars + '</strong> 字符 → 处理后 <strong>' + newLines + '</strong> 行 / <strong>' + newChars + '</strong> 字符 · ' + diffText + charInfo;
+            }
+
+            function applyCompress() {
+                const originalText = inputArea.value;
+                if (originalText.trim() === '') {
+                    statsBar.innerHTML = '⚠️ 输入为空，请先在左侧输入框粘贴代码。';
+                    outputArea.value = '';
+                    return;
+                }
+                const selectedRadio = document.querySelector('input[name="compressType"]:checked');
+                if (!selectedRadio) return;
+                const type = selectedRadio.value;
+                const processed = compressCode(originalText, type);
+                updateOutput(processed, originalText);
+            }
+
+            function applyExpand() {
+                const originalText = inputArea.value;
+                if (originalText.trim() === '') {
+                    statsBar.innerHTML = '⚠️ 输入为空，请先在左侧输入框粘贴代码。';
+                    outputArea.value = '';
+                    return;
+                }
+                const processed = expandCode(originalText);
+                updateOutput(processed, originalText);
+            }
+
+            function resetToOriginal() {
+                const originalText = inputArea.value;
+                outputArea.value = originalText;
+                const lines = countLines(originalText);
+                const chars = originalText.length;
+                statsBar.innerHTML = '📋 已恢复原始输入 · 共 <strong>' + lines + '</strong> 行，<strong>' + chars + '</strong> 字符';
+            }
+
+            function copyResult() {
+                const text = outputArea.value;
+                if (!text) {
+                    statsBar.innerHTML = '📋 没有可复制的内容，请先处理代码。';
+                    return;
+                }
+                outputArea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        statsBar.innerHTML = '✅ 已复制到剪贴板！';
+                    } else {
+                        statsBar.innerHTML = '❌ 复制失败，请手动选择并复制。';
+                    }
+                } catch (e) {
+                    statsBar.innerHTML = '❌ 复制失败（平台限制），请手动 Ctrl+C。';
+                }
+                window.getSelection().removeAllRanges();
+            }
+
+            function downloadResult() {
+                const text = outputArea.value;
+                if (!text) {
+                    statsBar.innerHTML = '⚠️ 没有内容可下载，请先处理代码。';
+                    return;
+                }
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'processed_code.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                statsBar.innerHTML = '💾 下载完成！文件：processed_code.txt';
+            }
+
+            function switchMode(mode) {
+                currentMode = mode;
+                if (mode === 'compress') {
+                    tabCompress.classList.add('active');
+                    tabExpand.classList.remove('active');
+                    compressPanel.style.display = 'block';
+                    expandPanel.style.display = 'none';
+                } else {
+                    tabExpand.classList.add('active');
+                    tabCompress.classList.remove('active');
+                    compressPanel.style.display = 'none';
+                    expandPanel.style.display = 'block';
+                }
+                statsBar.innerHTML = '📊 模式已切换，点击对应按钮执行操作';
+            }
+
+            tabCompress.addEventListener('click', function() { switchMode('compress'); });
+            tabExpand.addEventListener('click', function() { switchMode('expand'); });
+            applyCompressBtn.addEventListener('click', applyCompress);
+            applyExpandBtn.addEventListener('click', applyExpand);
+            resetBtn.addEventListener('click', resetToOriginal);
+            copyBtn.addEventListener('click', copyResult);
+            downloadBtn.addEventListener('click', downloadResult);
+
+            outputArea.value = '';
+            statsBar.innerHTML = '📊 点击操作按钮以查看结果';
+        })();
+    </script>
+</body>
+</html>

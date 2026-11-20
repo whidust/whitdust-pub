@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量替换工具</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            padding: 24px 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px 28px;
+            border: 1px solid #d1d5db;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+            color: #0b1e33;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 14px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin-top: 20px;
+        }
+        @media (max-width: 800px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            padding: 18px 20px 20px 20px;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #111827;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .card-title .badge {
+            font-weight: 400;
+            font-size: 13px;
+            color: #4b5563;
+            background: #f3f4f6;
+            padding: 0 10px;
+            border-radius: 12px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 280px;
+            padding: 10px 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            border: 1px solid #cbd5e1;
+            background: #fafbfc;
+            color: #0b1e33;
+            resize: vertical;
+            outline: none;
+            line-height: 1.6;
+        }
+        textarea:focus {
+            border-color: #2563eb;
+            background: #ffffff;
+        }
+
+        .nl-box {
+            background: #f3f6fc;
+            border: 1px solid #dbeafe;
+            padding: 10px 14px;
+            margin: 12px 0 16px 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+        }
+        .nl-box label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1e293b;
+        }
+        .nl-box input {
+            flex: 2;
+            min-width: 180px;
+            padding: 6px 12px;
+            border: 1px solid #cbd5e1;
+            font-size: 14px;
+            background: white;
+            color: #0b1e33;
+            outline: none;
+        }
+        .nl-box input:focus {
+            border-color: #2563eb;
+        }
+        .nl-box .hint {
+            font-size: 13px;
+            color: #4b5563;
+        }
+
+        .rule-area {
+            margin-top: 6px;
+        }
+        .rule-row {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 0.5fr 0.5fr;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .rule-row.header {
+            font-weight: 600;
+            font-size: 13px;
+            color: #374151;
+            padding: 4px 2px;
+        }
+        .rule-row input {
+            padding: 6px 8px;
+            border: 1px solid #d1d5db;
+            background: #fafbfc;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #0b1e33;
+            outline: none;
+            width: 100%;
+        }
+        .rule-row input:focus {
+            border-color: #2563eb;
+            background: white;
+        }
+        .rule-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin: 0 auto;
+            display: block;
+            accent-color: #2563eb;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            margin: 16px 0 10px 0;
+        }
+        .btn {
+            padding: 8px 22px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            color: #1e293b;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.1s;
+            border-radius: 0;
+        }
+        .btn:hover {
+            background: #e5e7eb;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+        .btn-success {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+            padding: 2px 12px;
+            font-size: 13px;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px dashed #9ca3af;
+        }
+        .btn-outline:hover {
+            background: #f3f4f6;
+            border: 1px solid #6b7280;
+        }
+
+        .stats {
+            background: #f3f4f6;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            border-left: 4px solid #2563eb;
+            color: #1e293b;
+            margin: 8px 0 0 0;
+        }
+        .stats strong {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .output-box {
+            background: #fafbfc;
+            border: 1px solid #d1d5db;
+            padding: 14px;
+            min-height: 320px;
+            max-height: 400px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #0b1e33;
+            margin-top: 8px;
+        }
+
+        .footer-hint {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .footer-hint code {
+            background: #f3f4f6;
+            padding: 1px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>批量管道替换器</h1>
+
+    <div class="grid-2">
+        <!-- 左侧 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📥 原始文本</span>
+                <span class="badge">粘贴代码或数据</span>
+            </div>
+            <textarea id="inputText" placeholder="请粘贴你要处理的内容..."></textarea>
+
+            <div class="rule-area">
+                <div class="flex-between" style="margin:12px 0 6px 0;">
+                    <span style="font-weight:600; font-size:15px;">替换规则（从上到下依次执行）</span>
+                    <div>
+                        <button class="btn btn-outline" onclick="addRule()" style="padding:4px 16px;font-size:13px;">➕ 添加</button>
+                        <button class="btn btn-outline" onclick="clearRules()" style="padding:4px 16px;font-size:13px;border-color:#9ca3af;">清空</button>
+                    </div>
+                </div>
+
+                <div class="nl-box">
+                    <label>🧠 自然语言</label>
+                    <input type="text" id="nlInput" placeholder='例如：将所有A替换成B' />
+                    <button class="btn btn-primary" onclick="parseNaturalLanguage()" style="padding:4px 20px;">生成规则</button>
+                    <span class="hint">支持：将/把 A 替换成/变为 B</span>
+                </div>
+
+                <div id="rulesContainer">
+                    <div class="rule-row header">
+                        <span>查找 (A)</span>
+                        <span>替换为 (B)</span>
+                        <span style="text-align:center;">正则</span>
+                        <span style="text-align:center;">操作</span>
+                    </div>
+                    <!-- 初始仅一条空规则，无预设值 -->
+                    <div class="rule-row" data-rule-id="0">
+                        <input type="text" class="rule-find" placeholder="查找内容" value="">
+                        <input type="text" class="rule-replace" placeholder="替换内容" value="">
+                        <input type="checkbox" class="rule-regex">
+                        <button class="btn btn-danger" style="padding:2px 10px;font-size:13px;" onclick="removeRule(this)">✕</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="executeReplace()">▶ 执行全部替换</button>
+                <button class="btn btn-success" onclick="copyResult()">📋 复制结果</button>
+                <button class="btn btn-outline" onclick="downloadResult()">⬇ 下载</button>
+            </div>
+            <div id="statsDisplay" class="stats">⏳ 等待执行...</div>
+        </div>
+
+        <!-- 右侧 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📤 替换结果</span>
+                <button class="btn btn-outline" onclick="clearOutput()" style="padding:2px 16px;font-size:13px;">清空</button>
+            </div>
+            <div id="outputBox" class="output-box">点击左侧「执行全部替换」查看结果</div>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        💡 规则按顺序连续执行。勾选“正则”后支持正则表达式（如 <code>\d+</code>）。自然语言添加默认不勾选正则（纯文本）。
+    </div>
+</div>
+
+<script>
+    let ruleCounter = 1; // 已有一条空规则
+
+    // ---------- 自然语言解析 ----------
+    function parseNaturalLanguage() {
+        const input = document.getElementById('nlInput').value.trim();
+        if (!input) { alert('请输入指令，例如：将所有A替换成B'); return; }
+
+        let match = input.match(/(?:将|把|替换)(?:所有|全部)?([\s\S]*?)(?:替换成|替换为|变成|改为|换成|为)([\s\S]*)/);
+        if (!match) {
+            match = input.match(/^([\s\S]*?)(?:替换成|替换为|变成|改为|换成|为)([\s\S]*)$/);
+        }
+        if (match) {
+            let find = match[1].trim();
+            let replace = match[2].trim();
+            if (find === '' || replace === '') {
+                alert('解析出的查找或替换内容为空，请检查格式。');
+                return;
+            }
+            addRuleWithValues(find, replace, false);
+            document.getElementById('nlInput').value = '';
+            document.getElementById('nlInput').placeholder = '✅ 已添加，继续输入...';
+            setTimeout(() => {
+                document.getElementById('nlInput').placeholder = '例如：将所有A替换成B';
+            }, 1800);
+        } else {
+            alert('无法识别。请使用格式：将A替换成B 或 把A变为B');
+        }
+    }
+
+    function addRuleWithValues(find, replace, isRegex) {
+        const container = document.getElementById('rulesContainer');
+        // 先找空行
+        const rows = container.querySelectorAll('.rule-row:not(.header)');
+        let target = null;
+        for (let row of rows) {
+            const f = row.querySelector('.rule-find');
+            const r = row.querySelector('.rule-replace');
+            if (f.value === '' && r.value === '') { target = row; break; }
+        }
+        if (target) {
+            target.querySelector('.rule-find').value = find;
+            target.querySelector('.rule-replace').value = replace;
+            target.querySelector('.rule-regex').checked = isRegex;
+        } else {
+            // 创建新行
+            const row = document.createElement('div');
+            row.className = 'rule-row';
+            row.dataset.ruleId = ruleCounter++;
+            row.innerHTML = `
+                <input type="text" class="rule-find" value="${find.replace(/"/g,'&quot;')}" placeholder="查找内容">
+                <input type="text" class="rule-replace" value="${replace.replace(/"/g,'&quot;')}" placeholder="替换内容">
+                <input type="checkbox" class="rule-regex" ${isRegex ? 'checked' : ''}>
+                <button class="btn btn-danger" style="padding:2px 10px;font-size:13px;" onclick="removeRule(this)">✕</button>
+            `;
+            container.appendChild(row);
+        }
+    }
+
+    // ---------- 手动操作 ----------
+    function addRule() {
+        const container = document.getElementById('rulesContainer');
+        const row = document.createElement('div');
+        row.className = 'rule-row';
+        row.dataset.ruleId = ruleCounter++;
+        row.innerHTML = `
+            <input type="text" class="rule-find" placeholder="查找内容">
+            <input type="text" class="rule-replace" placeholder="替换内容">
+            <input type="checkbox" class="rule-regex">
+            <button class="btn btn-danger" style="padding:2px 10px;font-size:13px;" onclick="removeRule(this)">✕</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeRule(btn) {
+        const row = btn.closest('.rule-row');
+        const container = document.getElementById('rulesContainer');
+        if (container.querySelectorAll('.rule-row:not(.header)').length <= 1) {
+            alert('至少保留一条规则。如需清空请点「清空」按钮。');
+            return;
+        }
+        row.remove();
+    }
+
+    function clearRules() {
+        const container = document.getElementById('rulesContainer');
+        const header = container.querySelector('.rule-row.header');
+        container.innerHTML = '';
+        container.appendChild(header);
+        const row = document.createElement('div');
+        row.className = 'rule-row';
+        row.dataset.ruleId = ruleCounter++;
+        row.innerHTML = `
+            <input type="text" class="rule-find" placeholder="查找内容" value="">
+            <input type="text" class="rule-replace" placeholder="替换内容" value="">
+            <input type="checkbox" class="rule-regex">
+            <button class="btn btn-danger" style="padding:2px 10px;font-size:13px;" onclick="removeRule(this)">✕</button>
+        `;
+        container.appendChild(row);
+    }
+
+    // ---------- 获取规则 ----------
+    function getRules() {
+        const rows = document.querySelectorAll('.rule-row:not(.header)');
+        const rules = [];
+        rows.forEach(row => {
+            const find = row.querySelector('.rule-find').value;
+            const replace = row.querySelector('.rule-replace').value;
+            const isRegex = row.querySelector('.rule-regex').checked;
+            if (find !== '') rules.push({ find, replace, isRegex });
+        });
+        return rules;
+    }
+
+    // ---------- 执行替换 ----------
+    function executeReplace() {
+        const input = document.getElementById('inputText').value;
+        const rules = getRules();
+        const statsDiv = document.getElementById('statsDisplay');
+        const outputDiv = document.getElementById('outputBox');
+
+        if (!input) { outputDiv.textContent = '❌ 没有输入内容。'; statsDiv.innerHTML = '⚠️ 无输入'; return; }
+        if (rules.length === 0) { outputDiv.textContent = '❌ 请添加至少一条替换规则。'; statsDiv.innerHTML = '⚠️ 无规则'; return; }
+
+        let result = input;
+        let total = 0;
+        let log = [];
+
+        rules.forEach((rule, idx) => {
+            let count = 0;
+            let newResult = result;
+            if (rule.isRegex) {
+                try {
+                    let pattern = rule.find;
+                    let flags = 'g';
+                    const slashMatch = pattern.match(/^\/(.+?)\/([gim]*)$/);
+                    if (slashMatch) { pattern = slashMatch[1]; flags = 'g' + (slashMatch[2] || ''); }
+                    const regex = new RegExp(pattern, flags);
+                    newResult = result.replace(regex, (match, ...args) => {
+                        count++;
+                        let rep = rule.replace;
+                        rep = rep.replace(/\$&/g, match);
+                        for (let i = 1; i < args.length - 2; i++) {
+                            rep = rep.replace(new RegExp('\\$' + i, 'g'), args[i-1] || '');
+                        }
+                        return rep;
+                    });
+                } catch (e) {
+                    outputDiv.textContent = `❌ 正则错误 (规则${idx+1}): ${e.message}`;
+                    statsDiv.innerHTML = `❌ 正则解析失败`;
+                    return;
+                }
+            } else {
+                if (rule.find === '') { newResult = result; count = 0; } 
+                else {
+                    const parts = result.split(rule.find);
+                    count = parts.length - 1;
+                    newResult = parts.join(rule.replace);
+                }
+            }
+            result = newResult;
+            total += count;
+            log.push(`规则${idx+1}:${count}处`);
+        });
+
+        outputDiv.textContent = result;
+        statsDiv.innerHTML = `✅ 完成！共替换 <strong>${total}</strong> 处。 ${log.join(' | ')}`;
+    }
+
+    function copyResult() {
+        const out = document.getElementById('outputBox').textContent;
+        if (out && !out.startsWith('点击') && !out.startsWith('❌')) {
+            navigator.clipboard.writeText(out).then(() => alert('已复制到剪贴板'));
+        } else { alert('无有效内容可复制。'); }
+    }
+
+    function downloadResult() {
+        const out = document.getElementById('outputBox').textContent;
+        if (out && !out.startsWith('点击') && !out.startsWith('❌')) {
+            const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'replaced_result.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } else { alert('无有效内容可下载。'); }
+    }
+
+    function clearOutput() {
+        document.getElementById('outputBox').textContent = '已清空';
+        document.getElementById('statsDisplay').innerHTML = '⏳ 等待执行...';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('nlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); parseNaturalLanguage(); }
+        });
+    });
+</script>
+</body>
+</html>

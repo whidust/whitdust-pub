@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>占位符双向映射器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f7fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            padding: 24px 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px 28px;
+            border: 1px solid #d1d5db;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+            color: #0b1e33;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 14px;
+        }
+
+        .grid-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin-top: 20px;
+        }
+        @media (max-width: 900px) {
+            .grid-main {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            padding: 18px 20px 20px 20px;
+        }
+        .card-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #111827;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .card-title .badge {
+            font-weight: 400;
+            font-size: 13px;
+            color: #4b5563;
+            background: #f3f4f6;
+            padding: 0 10px;
+            border-radius: 12px;
+        }
+
+        textarea, .output-box {
+            width: 100%;
+            padding: 10px 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            border: 1px solid #cbd5e1;
+            background: #fafbfc;
+            color: #0b1e33;
+            outline: none;
+            line-height: 1.6;
+            word-break: break-all;
+        }
+        textarea:focus, .output-box:focus {
+            border-color: #2563eb;
+            background: #ffffff;
+        }
+        /* 源码输入框固定大小 */
+        #inputText {
+            height: 280px;
+            resize: none;
+        }
+        /* 结果预览框固定大小 */
+        .output-box {
+            height: 300px;
+            overflow: auto;
+            white-space: pre-wrap;
+            background: #fafbfc;
+            margin-top: 8px;
+            resize: none;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            margin: 16px 0 10px 0;
+        }
+        .btn {
+            padding: 8px 22px;
+            font-size: 14px;
+            font-weight: 500;
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            color: #1e293b;
+            cursor: pointer;
+            text-decoration: none;
+            transition: 0.1s;
+            border-radius: 0;
+        }
+        .btn:hover {
+            background: #e5e7eb;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-success {
+            background: #16a34a;
+            color: white;
+            border-color: #16a34a;
+        }
+        .btn-success:hover {
+            background: #15803d;
+        }
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            border-color: #dc2626;
+            padding: 2px 12px;
+            font-size: 13px;
+        }
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px dashed #9ca3af;
+        }
+        .btn-outline:hover {
+            background: #f3f4f6;
+            border: 1px solid #6b7280;
+        }
+
+        .stats {
+            background: #f3f4f6;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            border-left: 4px solid #2563eb;
+            color: #1e293b;
+            margin: 8px 0 0 0;
+        }
+
+        /* ---------- 映射表样式 ---------- */
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+            table-layout: fixed;
+        }
+        .mapping-table th, .mapping-table td {
+            border: 1px solid #d1d5db;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mapping-table th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+            position: relative;
+        }
+        .mapping-table .col-check {
+            width: 40px;
+            text-align: center;
+        }
+        .mapping-table .col-id {
+            width: 60px;
+            text-align: center;
+        }
+        .mapping-table .col-original {
+            width: 200px;
+            position: relative;
+        }
+        .mapping-table .col-ph {
+            width: 120px;
+            font-family: 'Courier New', monospace;
+            color: #2563eb;
+            white-space: nowrap;
+        }
+        .mapping-table .col-action {
+            width: 70px;
+            text-align: center;
+        }
+
+        .orig-textarea {
+            width: 100%;
+            min-height: 32px;
+            padding: 4px 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            border: 1px solid #d1d5db;
+            background: #fafbfc;
+            outline: none;
+            resize: none;
+            overflow: hidden;
+            line-height: 1.4;
+            display: block;
+        }
+
+        .resizer {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            user-select: none;
+            background: transparent;
+        }
+        .resizer:hover,
+        .resizer.active {
+            background: #2563eb;
+        }
+
+        .scroll-table {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+
+        .search-box {
+            margin-bottom: 8px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+        .search-box input:focus {
+            border-color: #2563eb;
+        }
+
+        .highlight {
+            background-color: #fef08a;
+            color: #000;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .footer-hint {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        /* 快捷按钮区域（位于映射表卡片底部） */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔁 占位符双向映射器</h1>
+
+    <div class="grid-main">
+        <!-- 左侧：输入区与操作 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📥 源代码 / 编码后文本</span>
+                <span class="badge">粘贴需要处理的内容</span>
+            </div>
+            <textarea id="inputText" placeholder="请粘贴包含中文的代码或文本..."></textarea>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="encodeText()">▶ 提取并编码</button>
+                <button class="btn btn-success" onclick="decodeText()">◀ 解码还原</button>
+                <button class="btn" onclick="copyResult()">📋 复制结果</button>
+                <button class="btn btn-outline" onclick="downloadResult()">⬇ 下载结果</button>
+            </div>
+            <div id="statsDisplay" class="stats">⏳ 等待操作...</div>
+            <div style="margin-top:14px;">
+                <div class="card-title" style="margin-bottom:4px;">📤 结果预览</div>
+                <div id="outputBox" class="output-box">点击「提取并编码」或「解码还原」查看结果</div>
+            </div>
+        </div>
+
+        <!-- 右侧：映射表管理 -->
+        <div class="card">
+            <div class="card-title">
+                <span>📋 映射表</span>
+                <div>
+                    <button class="btn btn-outline" onclick="addMappingRow()" style="padding:4px 16px;font-size:13px;">➕ 添加行</button>
+                    <button class="btn btn-outline" onclick="selectAllRows()" style="padding:4px 16px;font-size:13px;">☑ 全选</button>
+                    <button class="btn btn-outline" onclick="deselectAllRows()" style="padding:4px 16px;font-size:13px;">☐ 取消全选</button>
+                    <button class="btn btn-outline" onclick="deleteSelectedRows()" style="padding:4px 16px;font-size:13px; color:#dc2626; border-color:#fecaca;">🗑 删除选中</button>
+                    <button class="btn btn-outline" onclick="clearAllMappings()" style="padding:4px 16px;font-size:13px; color:#b91c1c;">🧹 清空映射</button>
+                    <button class="btn btn-outline" onclick="exportMapping()" style="padding:4px 16px;font-size:13px;">📤 导出</button>
+                    <button class="btn btn-outline" onclick="importMappingPrompt()" style="padding:4px 16px;font-size:13px;">📥 导入</button>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 搜索映射表 / 高亮结果..." oninput="handleSearch()">
+            </div>
+
+            <div class="scroll-table">
+                <table class="mapping-table" id="mappingTable">
+                    <thead>
+                        <tr>
+                            <th class="col-check"></th>
+                            <th class="col-id">编号</th>
+                            <th class="col-original">
+                                原始文本
+                                <div class="resizer" id="originalResizer"></div>
+                            </th>
+                            <th class="col-ph">占位符</th>
+                            <th class="col-action">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mappingBody">
+                        <!-- 动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="tableStats" class="stats" style="margin-top:10px;">映射记录：0 条</div>
+
+            <!-- 快捷按钮固定在此处 -->
+            <div class="quick-actions">
+                <button class="btn btn-primary" onclick="quickExport()">⚡ 一键导出</button>
+                <button class="btn btn-success" onclick="quickImport()">📂 一键导入</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-hint">
+        💡 编码规则：所有连续中文字符（含中文标点）将被替换为 <code>_编号_</code>，相同内容每次出现都分配新编号。拖动“原始文本”列右侧分隔线可调整列宽。使用搜索框可同时过滤映射表并高亮结果区域。
+    </div>
+</div>
+
+<script>
+    // ---------- 全局状态 ----------
+    let mapping = [];
+    let currentResult = '';
+
+    // ======== 修改点 ========
+    // 原为 '{{' 和 '}}'，现改为 '_' 和 '_'，生成 _数字_ 格式
+    const PH_PREFIX = '_';
+    const PH_SUFFIX = '_';
+    // ========================
+
+    const CHINESE_RE = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\u3000-\u303f\uff01-\uff5e\u2018-\u201d\u2026\u00b7\u2014\u2013\u3001\u3002\u300a\u300b\u300c\u300d\u300e\u300f\u3010\u3011\uff08\uff09\u2018\u2019\u201c\u201d]+/g;
+
+    function generatePlaceholder(id) {
+        return PH_PREFIX + id + PH_SUFFIX;
+    }
+
+    function buildDecodeMap() {
+        const map = new Map();
+        mapping.forEach(item => {
+            map.set(generatePlaceholder(item.id), item.original);
+        });
+        return map;
+    }
+
+    function escapeHtml(text) {
+        return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function autoResizeTextarea(el) {
+        el.style.height = 'auto';
+        el.style.height = (el.scrollHeight) + 'px';
+    }
+
+    function updateOutputDisplay() {
+        const outputBox = document.getElementById('outputBox');
+        const keyword = document.getElementById('searchInput').value.trim();
+        if (!currentResult || currentResult.startsWith('点击')) {
+            outputBox.textContent = currentResult || '点击「提取并编码」或「解码还原」查看结果';
+            return;
+        }
+        if (!keyword) {
+            outputBox.textContent = currentResult;
+            return;
+        }
+        const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(escapedKeyword, 'gi');
+        const highlighted = currentResult.replace(regex, match => `<mark class="highlight">${match}</mark>`);
+        outputBox.innerHTML = highlighted;
+    }
+
+    function setResult(text) {
+        currentResult = text;
+        updateOutputDisplay();
+    }
+
+    function clearResult() {
+        currentResult = '';
+        document.getElementById('outputBox').textContent = '已清空';
+        document.getElementById('statsDisplay').innerHTML = '⏳ 等待操作...';
+    }
+
+    // ---------- 映射表渲染 ----------
+    function renderMappingTable() {
+        const tbody = document.getElementById('mappingBody');
+        tbody.innerHTML = '';
+        mapping.forEach((item) => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-id', item.id);
+            tr.innerHTML = `
+                <td class="col-check"><input type="checkbox" class="row-checkbox" data-id="${item.id}"></td>
+                <td class="col-id">${item.id}</td>
+                <td class="col-original">
+                    <textarea class="orig-textarea" data-id="${item.id}" 
+                        onchange="updateMappingOriginal(${item.id}, this.value)"
+                        oninput="autoResizeTextarea(this)">${escapeHtml(item.original)}</textarea>
+                </td>
+                <td class="col-ph">${generatePlaceholder(item.id)}</td>
+                <td class="col-action"><button class="btn btn-danger" style="padding:2px 10px;font-size:13px;" onclick="deleteMapping(${item.id})">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.querySelectorAll('.orig-textarea').forEach(autoResizeTextarea);
+        document.getElementById('tableStats').innerHTML = `映射记录：${mapping.length} 条`;
+        handleSearch();
+    }
+
+    function updateMappingOriginal(id, newValue) {
+        const item = mapping.find(m => m.id === id);
+        if (item) item.original = newValue;
+    }
+
+    function deleteMapping(id) {
+        if (confirm(`确认删除编号 ${id} 的映射记录吗？`)) {
+            mapping = mapping.filter(m => m.id !== id);
+            renderMappingTable();
+        }
+    }
+
+    function selectAllRows() {
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = true);
+    }
+
+    function deselectAllRows() {
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    function getSelectedIds() {
+        const ids = [];
+        document.querySelectorAll('.row-checkbox:checked').forEach(cb => ids.push(Number(cb.getAttribute('data-id'))));
+        return ids;
+    }
+
+    function deleteSelectedRows() {
+        const selectedIds = getSelectedIds();
+        if (selectedIds.length === 0) {
+            alert('请至少选中一条记录');
+            return;
+        }
+        if (confirm(`确定要删除选中的 ${selectedIds.length} 条记录吗？`)) {
+            mapping = mapping.filter(m => !selectedIds.includes(m.id));
+            renderMappingTable();
+        }
+    }
+
+    function clearAllMappings() {
+        if (mapping.length === 0) {
+            alert('映射表已为空');
+            return;
+        }
+        if (confirm('确认清空所有映射记录吗？此操作不可恢复。')) {
+            mapping = [];
+            renderMappingTable();
+        }
+    }
+
+    function addMappingRow() {
+        const maxId = mapping.length > 0 ? Math.max(...mapping.map(m => m.id)) : 0;
+        mapping.push({ id: maxId + 1, original: '' });
+        renderMappingTable();
+        const newTextarea = document.querySelector(`.orig-textarea[data-id="${maxId + 1}"]`);
+        if (newTextarea) newTextarea.focus();
+    }
+
+    function handleSearch() {
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        const rows = document.querySelectorAll('#mappingBody tr');
+        rows.forEach(row => {
+            const id = row.getAttribute('data-id');
+            const item = mapping.find(m => m.id == id);
+            if (!item) return;
+            const text = (item.original + generatePlaceholder(item.id)).toLowerCase();
+            row.style.display = (!keyword || text.includes(keyword)) ? '' : 'none';
+        });
+        updateOutputDisplay();
+    }
+
+    // ---------- 编码 / 解码 ----------
+    function encodeText() {
+        const input = document.getElementById('inputText').value;
+        if (!input.trim()) {
+            setResult('❌ 输入为空');
+            document.getElementById('statsDisplay').innerHTML = '⚠️ 无输入';
+            return;
+        }
+        mapping = [];
+        let counter = 1;
+        let newText = input;
+        const matches = [];
+        let match;
+        const re = new RegExp(CHINESE_RE.source, 'g');
+        while ((match = re.exec(input)) !== null) {
+            matches.push({ text: match[0], index: match.index, id: counter++ });
+        }
+        for (let i = matches.length - 1; i >= 0; i--) {
+            const m = matches[i];
+            newText = newText.substring(0, m.index) + generatePlaceholder(m.id) + newText.substring(m.index + m.text.length);
+            mapping.unshift({ id: m.id, original: m.text });
+        }
+        setResult(newText);
+        document.getElementById('statsDisplay').innerHTML = `✅ 编码完成，共提取 <strong>${matches.length}</strong> 段中文，生成映射表。`;
+        renderMappingTable();
+    }
+
+    function decodeText() {
+        const input = document.getElementById('inputText').value;
+        if (!input.trim()) {
+            setResult('❌ 输入为空');
+            document.getElementById('statsDisplay').innerHTML = '⚠️ 无输入';
+            return;
+        }
+        if (mapping.length === 0) {
+            setResult('❌ 映射表为空，无法解码。请先导入或编码生成映射表。');
+            document.getElementById('statsDisplay').innerHTML = '⚠️ 无映射';
+            return;
+        }
+        let result = input;
+        const decodeMap = buildDecodeMap();
+        const sortedKeys = Array.from(decodeMap.keys()).sort((a, b) => b.length - a.length);
+        let count = 0;
+        sortedKeys.forEach(ph => {
+            const original = decodeMap.get(ph);
+            const escapedPh = ph.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const re = new RegExp(escapedPh, 'g');
+            const matches = result.match(re);
+            if (matches) {
+                count += matches.length;
+                result = result.replace(re, original);
+            }
+        });
+        setResult(result);
+        document.getElementById('statsDisplay').innerHTML = `✅ 解码完成，共还原 <strong>${count}</strong> 个占位符。`;
+    }
+
+    function copyResult() {
+        if (currentResult && !currentResult.startsWith('点击') && !currentResult.startsWith('❌')) {
+            navigator.clipboard.writeText(currentResult).then(() => alert('已复制到剪贴板'));
+        } else {
+            alert('无有效内容可复制。');
+        }
+    }
+
+    function downloadResult() {
+        if (currentResult && !currentResult.startsWith('点击') && !currentResult.startsWith('❌')) {
+            const blob = new Blob([currentResult], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'result.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        } else {
+            alert('无有效内容可下载。');
+        }
+    }
+
+    function exportMapping() {
+        if (mapping.length === 0) {
+            alert('映射表为空，无数据可导出。');
+            return;
+        }
+        const data = mapping.map(item => ({ id: item.id, original: item.original }));
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'mapping.json';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function importMappingPrompt() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (!Array.isArray(data)) throw new Error('格式错误');
+                    mapping = data.map(item => ({
+                        id: Number(item.id) || 0,
+                        original: String(item.original || '')
+                    })).filter(item => item.id > 0);
+                    renderMappingTable();
+                    alert(`成功导入 ${mapping.length} 条映射记录。`);
+                } catch (err) {
+                    alert('导入失败：JSON 格式无效或结构不正确。');
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    // ---------- 快捷按钮 ----------
+    function quickExport() {
+        const input = document.getElementById('inputText').value.trim();
+        if (!input) {
+            alert('源代码为空，无法执行一键导出。');
+            return;
+        }
+        encodeText();
+        setTimeout(() => {
+            if (currentResult && !currentResult.startsWith('❌')) {
+                downloadResult();
+            } else {
+                alert('编码失败，无法导出。');
+            }
+        }, 50);
+    }
+
+    function quickImport() {
+        if (mapping.length === 0) {
+            alert('当前映射表为空，无法执行一键导入。请先导入映射表或执行编码生成映射表。');
+            return;
+        }
+        const valid = mapping.some(item => item.original.trim() !== '');
+        if (!valid) {
+            alert('映射表混乱（所有原始文本均为空），无法解码。');
+            return;
+        }
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.txt,.json,.*';
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                document.getElementById('inputText').value = ev.target.result;
+                decodeText();
+            };
+            reader.readAsText(file);
+        };
+        fileInput.click();
+    }
+
+    // ---------- 列宽拖拽 ----------
+    function initColumnResize() {
+        const resizer = document.getElementById('originalResizer');
+        const table = document.getElementById('mappingTable');
+        let startX, startWidth;
+
+        function onMouseDown(e) {
+            e.preventDefault();
+            startX = e.clientX;
+            const thOriginal = table.querySelector('th.col-original');
+            startWidth = thOriginal.offsetWidth;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            resizer.classList.add('active');
+        }
+
+        function onMouseMove(e) {
+            const dx = e.clientX - startX;
+            const newWidth = Math.max(60, startWidth + dx);
+            const cells = table.querySelectorAll('th.col-original, td.col-original');
+            cells.forEach(cell => cell.style.width = newWidth + 'px');
+            document.querySelectorAll('.orig-textarea').forEach(autoResizeTextarea);
+        }
+
+        function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            resizer.classList.remove('active');
+        }
+
+        resizer.addEventListener('mousedown', onMouseDown);
+    }
+
+    // ---------- 初始化 ----------
+    window.addEventListener('DOMContentLoaded', () => {
+        renderMappingTable();
+        initColumnResize();
+
+        document.getElementById('inputText').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                encodeText();
+            } else if (e.ctrlKey && e.shiftKey && e.key === 'Enter') {
+                e.preventDefault();
+                decodeText();
+            }
+        });
+    });
+</script>
+</body>
+</html>

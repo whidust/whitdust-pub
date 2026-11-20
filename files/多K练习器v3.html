@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>多K音游 · 音效模式切换</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+    body { background:#f3efe8; min-height:100vh; display:flex; justify-content:center; align-items:center; font-family:system-ui,sans-serif; padding:1rem; }
+    .game-container { background:rgba(255,250,245,0.95); border-radius:2.5rem; padding:1.5rem 2rem 2rem; box-shadow:0 25px 40px rgba(0,0,0,0.12); display:flex; flex-direction:column; align-items:center; gap:1rem; max-width:98vw; }
+    .mode-selector,.pattern-selector,.sound-selector { display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; }
+    .mode-btn,.pattern-btn,.sound-btn { background:rgba(230,220,205,0.6); border:1px solid rgba(170,150,130,0.4); color:#5e5548; padding:0.4rem 1rem; border-radius:2rem; font-weight:600; font-size:0.9rem; cursor:pointer; transition:0.2s; white-space:nowrap; }
+    .mode-btn.active,.pattern-btn.active,.sound-btn.active { background:#c9b99a; color:#2a241c; border-color:#a08c70; box-shadow:0 3px 10px rgba(0,0,0,0.15); font-weight:700; }
+    .pattern-btn:disabled,.sound-btn:disabled { opacity:0.4; pointer-events:none; filter:grayscale(0.5); }
+    .grid { display:grid; column-gap:0.6rem; row-gap:0.4rem; background:#1a1a24; border-radius:2rem; padding:0.8rem; box-shadow:inset 0 3px 12px rgba(0,0,0,0.4); touch-action:manipulation; min-height:320px; contain:layout style; width:fit-content; transition:border 0.05s,box-shadow 0.05s; }
+    .wrong-flash { animation:shake 0.2s ease-in-out; border:2px solid #ff5555; box-shadow:0 0 16px rgba(255,80,80,0.6)!important; }
+    @keyframes shake { 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-4px); } 75%{ transform:translateX(4px); } }
+    .cell { border-radius:0.6rem; background:#2a2a36; box-shadow:0 0 0 1px rgba(255,255,255,0.05); cursor:pointer; border:none; width:clamp(2.6rem,14vmin,4rem); height:clamp(3.9rem,21vmin,6rem); }
+    .cell.black { background:radial-gradient(circle at 30% 30%, #ffffff, #d8d8e0); box-shadow:0 0 12px rgba(255,255,255,0.5); }
+    .cell.black.special { background:radial-gradient(circle at 30% 30%, #5ba0ff, #1e3a6e); box-shadow:0 0 14px rgba(74,158,255,0.65); }
+    .cell.black.bottom-row { }
+    .cell:active { box-shadow:inset 0 0 0 2px rgba(200,200,220,0.7); filter:brightness(1.15); }
+    .info-panel { display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap; justify-content:center; color:#5e5548; font-weight:500; background:rgba(250,243,235,0.8); padding:0.6rem 1.8rem; border-radius:3rem; font-size:1rem; }
+    .stat { background:#e7ddd0; padding:0.3rem 1rem; border-radius:2rem; color:#3e3529; font-weight:700; font-size:1.3rem; }
+    .reset-btn { background:rgba(230,220,205,0.7); border:1px solid rgba(170,150,130,0.5); color:#4e4438; padding:0.5rem 1.4rem; border-radius:2rem; font-weight:600; font-size:1rem; cursor:pointer; }
+    .hint { color:#8b8072; font-size:0.85rem; display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; justify-content:center; }
+    .key-hint { display:flex; gap:0.3rem; flex-wrap:wrap; }
+    .key-badge { background:#e0d6c8; color:#3e3529; font-weight:700; padding:0.15rem 0.6rem; border-radius:0.4rem; font-size:0.9rem; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+    .key-badge.special-key { background:#d4b896; color:#3e2a10; box-shadow:0 1px 6px rgba(180,120,30,0.35); }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <div class="mode-selector" id="modeSelector">
+    <button class="mode-btn active" data-mode="4k">4K</button>
+    <button class="mode-btn" data-mode="5k">5K</button>
+    <button class="mode-btn" data-mode="6k">6K</button>
+    <button class="mode-btn" data-mode="7k">7K</button>
+  </div>
+  <div class="pattern-selector" id="patternSelector">
+    <button class="pattern-btn active" data-pattern="random">乱</button>
+    <button class="pattern-btn" data-pattern="sparseDouble">稀疏双押切</button>
+    <button class="pattern-btn" data-pattern="denseDouble">密集双押切</button>
+    <button class="pattern-btn" data-pattern="sparseTriple">稀疏三押切</button>
+    <button class="pattern-btn" data-pattern="denseTriple">密集三押切</button>
+    <button class="pattern-btn" data-pattern="capsule">胶囊</button>
+    <button class="pattern-btn" data-pattern="grand">大切</button>
+  </div>
+  <div class="sound-selector" id="soundSelector">
+    <span style="color:#6b6254; font-size:0.9rem;">🔊</span>
+    <button class="sound-btn active" data-sound="random">随机大调</button>
+    <button class="sound-btn" data-sound="fixed">固定音高</button>
+    <button class="sound-btn" data-sound="mute">静音</button>
+  </div>
+  <div class="grid" id="gameGrid"></div>
+  <div class="info-panel">
+    <span>🎯</span><span class="stat" id="scoreDisplay">0</span>
+    <span>🔥连击</span><span class="stat" id="comboDisplay">0</span>
+    <span>⚡BPS</span><span class="stat" id="bpsDisplay">0.0</span>
+    <button class="reset-btn" id="resetButton">↺ 重来</button>
+  </div>
+  <div class="hint">
+    <span class="key-hint" id="keyHint"></span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const MODES = {
+      '4k': { cols: 4, keys: ['D','F','J','K'], special: [] },
+      '5k': { cols: 5, keys: ['D','F','J','K','L'], special: [1,3] },
+      '6k': { cols: 6, keys: ['S','D','F','J','K','L'], special: [1,4] },
+      '7k': { cols: 7, keys: ['A','S','D','␣','J','K','L'], special: [1,3,5] }
+    };
+    const ROWS = 8, BPS_WINDOW = 2000;
+
+    let currentMode = '4k', COLS, KEY_MAP, SPECIAL_COLS, currentPattern = 'random';
+    let currentSound = 'random'; // 'random' | 'fixed' | 'mute'
+    let gridState = [], columnCounts = [], columnMissCounts = [], totalRowsGenerated = 0, score = 0, combo = 0;
+    let grandAdjacentStreak = 0, MAX_STREAK = 6;
+    const clickTimestamps = [];
+    const gridEl = document.getElementById('gameGrid'), scoreEl = document.getElementById('scoreDisplay'),
+          bpsEl = document.getElementById('bpsDisplay'), comboEl = document.getElementById('comboDisplay');
+    const keyHintEl = document.getElementById('keyHint'), modeSelector = document.getElementById('modeSelector'),
+          patternSelector = document.getElementById('patternSelector'), resetButton = document.getElementById('resetButton'),
+          soundSelector = document.getElementById('soundSelector');
+    let cells = [];
+
+    // ---------- 音阶与参数 ----------
+    const MAJOR_SCALE = [
+      261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88,
+      523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77,
+      1046.50
+    ];
+    const FIXED_FREQ = 523.25; // C5
+    const MAX_JUMP = 4;
+    let lastNoteIndex = Math.floor(Math.random() * MAJOR_SCALE.length);
+
+    // ---------- 音频引擎 ----------
+    let audioCtx = null;
+    function initAudio() {
+      if (audioCtx) return;
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch(e) { audioCtx = null; }
+    }
+
+    function playNote(freq) {
+      if (!audioCtx) { initAudio(); if (!audioCtx) return; }
+      const now = audioCtx.currentTime;
+      const duration = 0.25;
+
+      // 主音三角波
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+
+      // 微弱高频泛音
+      const osc2 = audioCtx.createOscillator();
+      osc2.type = 'sine';
+      osc2.frequency.value = freq * 4;
+      const gain2 = audioCtx.createGain();
+      gain2.gain.setValueAtTime(0.1, now);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + duration * 0.6);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now);
+      osc2.stop(now + duration * 0.6);
+    }
+
+    function playErrorSound() {
+      if (!audioCtx) { initAudio(); if (!audioCtx) return; }
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = 150;
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+
+    // 根据音效模式播放旋律音
+    function playMelodyNote() {
+      if (currentSound === 'mute') return;
+      if (currentSound === 'fixed') {
+        playNote(FIXED_FREQ);
+        return;
+      }
+      // 随机大调模式
+      let candidates = [];
+      for (let i = 0; i < MAJOR_SCALE.length; i++) {
+        if (Math.abs(i - lastNoteIndex) <= MAX_JUMP && i !== lastNoteIndex) {
+          candidates.push(i);
+        }
+      }
+      if (candidates.length === 0) {
+        for (let i = 0; i < MAJOR_SCALE.length; i++) {
+          if (Math.abs(i - lastNoteIndex) <= MAX_JUMP) {
+            candidates.push(i);
+          }
+        }
+      }
+      const chosenIndex = candidates[Math.floor(Math.random() * candidates.length)];
+      const freq = MAJOR_SCALE[chosenIndex];
+      lastNoteIndex = chosenIndex;
+      playNote(freq);
+    }
+
+    function playError() {
+      if (currentSound === 'mute') return;
+      playErrorSound();
+    }
+
+    // 音效模式切换
+    function switchSound(sound) {
+      if (currentSound === sound) return;
+      currentSound = sound;
+      document.querySelectorAll('.sound-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === sound));
+    }
+
+    // ---------- 游戏逻辑 ----------
+    function getMaxPerCol() {
+      if (currentPattern === 'random') return 3;
+      if (currentPattern === 'sparseDouble' && COLS === 4) return 3;
+      return Infinity;
+    }
+
+    function getMinPerCol() {
+      if (COLS < 5) return 0;
+      if (currentPattern === 'sparseDouble') return 1;
+      if (['denseDouble','sparseTriple','denseTriple','grand'].includes(currentPattern)) return 2;
+      return 0;
+    }
+
+    function isPatternAvailable(pattern, cols) {
+      if (['random','sparseDouble','denseDouble'].includes(pattern)) return true;
+      if (['sparseTriple','denseTriple'].includes(pattern)) return cols >= 5;
+      if (['capsule','grand'].includes(pattern)) return cols >= 6;
+      return false;
+    }
+
+    function updatePatternButtons() {
+      document.querySelectorAll('.pattern-btn').forEach(b => {
+        b.disabled = !isPatternAvailable(b.dataset.pattern, COLS);
+        b.classList.toggle('active', b.dataset.pattern === currentPattern);
+      });
+    }
+
+    function selectColumns({ targetNum, avoidCols, mustFillCols = [], contiguous = false, contiguousLength = 2, forceAdjacent = null }) {
+      const maxPerCol = getMaxPerCol();
+      let basePool = [];
+      for (let c = 0; c < COLS; c++) {
+        if (columnCounts[c] < maxPerCol && !avoidCols.includes(c)) {
+          basePool.push(c);
+        }
+      }
+
+      if (currentPattern === 'random') {
+        if (basePool.length === 0) return [0];
+        return [basePool[Math.floor(Math.random() * basePool.length)]];
+      }
+
+      const maxMiss = currentPattern === 'sparseTriple' || currentPattern === 'denseTriple' ? 2 : (currentPattern === 'capsule' ? 4 : 3);
+      const prioritySet = new Set();
+      mustFillCols.forEach(c => { if (basePool.includes(c)) prioritySet.add(c); });
+      for (let c = 0; c < COLS; c++) {
+        if (columnMissCounts[c] >= maxMiss && basePool.includes(c)) prioritySet.add(c);
+      }
+      const priorityList = Array.from(prioritySet);
+
+      if (contiguous) {
+        let best = null, bestPri = -1;
+        for (let len = contiguousLength; len >= 1; len--) {
+          for (let start = 0; start <= COLS - len; start++) {
+            const range = Array.from({ length: len }, (_, i) => start + i);
+            if (range.every(c => basePool.includes(c))) {
+              const pri = range.filter(c => prioritySet.has(c)).length;
+              if (pri > bestPri) { bestPri = pri; best = range; }
+            }
+          }
+          if (best) break;
+        }
+        return best || selectColumns({ targetNum, avoidCols, mustFillCols, contiguous: false });
+      }
+
+      if (currentPattern === 'grand' && targetNum === 2 && forceAdjacent !== null) {
+        const pairs = [];
+        for (let i = 0; i < basePool.length; i++) {
+          for (let j = i + 1; j < basePool.length; j++) {
+            const a = basePool[i], b = basePool[j];
+            const adj = Math.abs(a - b) === 1;
+            if ((forceAdjacent && adj) || (!forceAdjacent && !adj)) pairs.push([a, b]);
+          }
+        }
+        if (pairs.length) {
+          pairs.sort((a, b) => b.filter(c => prioritySet.has(c)).length - a.filter(c => prioritySet.has(c)).length);
+          return pairs[0];
+        }
+        let sel = priorityList.slice(0, 2);
+        while (sel.length < 2) {
+          const rest = basePool.filter(c => !sel.includes(c));
+          if (!rest.length) break;
+          sel.push(rest[Math.floor(Math.random() * rest.length)]);
+        }
+        return sel;
+      }
+
+      let selected = [...priorityList].sort(() => Math.random() - 0.5).slice(0, targetNum);
+      if (selected.length < targetNum) {
+        const remaining = basePool.filter(c => !selected.includes(c));
+        const need = targetNum - selected.length;
+        const weights = remaining.map(c => Math.pow(columnMissCounts[c] + 1, 2));
+        const tp = [...remaining], tw = [...weights];
+        for (let k = 0; k < need && tp.length; k++) {
+          const total = tw.reduce((s, w) => s + w, 0);
+          if (total <= 0) { selected.push(tp[Math.floor(Math.random() * tp.length)]); break; }
+          let r = Math.random() * total, idx = 0;
+          for (let i = 0; i < tp.length; i++) {
+            r -= tw[i];
+            if (r <= 0) { idx = i; break; }
+          }
+          selected.push(tp[idx]);
+          tp.splice(idx, 1);
+          tw.splice(idx, 1);
+        }
+      }
+      return selected.slice(0, targetNum);
+    }
+
+    function updateMissCounts(newCols) {
+      for (let c = 0; c < COLS; c++) {
+        columnMissCounts[c] = newCols.includes(c) ? 0 : columnMissCounts[c] + 1;
+      }
+    }
+
+    function generateRow(prevCols) {
+      const avoidCols = prevCols || [];
+      const minPerCol = getMinPerCol();
+      let targetNum = 1, contiguous = false, contLen = 2, forceAdj = null;
+      const ri = totalRowsGenerated;
+      switch (currentPattern) {
+        case 'random': targetNum = 1; break;
+        case 'sparseDouble': targetNum = (ri % 4 === 3) ? 2 : 1; break;
+        case 'denseDouble': targetNum = (ri % 2 === 1) ? 2 : 1; break;
+        case 'sparseTriple': targetNum = (ri % 4 === 3) ? 3 : 1; break;
+        case 'denseTriple': targetNum = (ri % 2 === 1) ? 3 : 1; break;
+        case 'capsule':
+          contLen = 2 + Math.floor(Math.random() * 2);
+          contiguous = true;
+          targetNum = contLen;
+          break;
+        case 'grand':
+          targetNum = 2;
+          const baseProb = 0.2;
+          if (Math.abs(grandAdjacentStreak) >= MAX_STREAK) {
+            forceAdj = grandAdjacentStreak > 0 ? false : true;
+          } else {
+            let p = baseProb;
+            if (grandAdjacentStreak > 0) p = baseProb * (1 - grandAdjacentStreak / MAX_STREAK);
+            else if (grandAdjacentStreak < 0) p = baseProb + (1 - baseProb) * (Math.abs(grandAdjacentStreak) / MAX_STREAK);
+            forceAdj = Math.random() < p;
+          }
+          break;
+      }
+
+      const mustFill = [];
+      if (minPerCol > 0) {
+        for (let c = 0; c < COLS; c++) {
+          if (columnCounts[c] < minPerCol && !avoidCols.includes(c)) mustFill.push(c);
+        }
+      }
+
+      const newCols = selectColumns({
+        targetNum, avoidCols, mustFillCols: mustFill,
+        contiguous, contiguousLength: contLen, forceAdjacent: forceAdj
+      });
+
+      if (currentPattern === 'grand' && newCols.length >= 2) {
+        const adj = Math.abs(newCols[0] - newCols[1]) === 1;
+        grandAdjacentStreak = adj ? (grandAdjacentStreak > 0 ? grandAdjacentStreak + 1 : 1) : (grandAdjacentStreak < 0 ? grandAdjacentStreak - 1 : -1);
+      }
+      return newCols;
+    }
+
+    function buildGridDOM() {
+      gridEl.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+      gridEl.innerHTML = '';
+      const f = document.createDocumentFragment();
+      const nc = [];
+      for (let r = 0; r < ROWS; r++) {
+        const row = [];
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          f.appendChild(cell);
+          row.push(cell);
+        }
+        nc.push(row);
+      }
+      gridEl.appendChild(f);
+      return nc;
+    }
+
+    function refreshGridClasses() {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) cells[r][c].classList.remove('black','special','bottom-row');
+      for (let r = 0; r < ROWS; r++) (gridState[r]||[]).forEach(col => {
+        const cell = cells[r][col];
+        cell.classList.add('black');
+        if (SPECIAL_COLS.includes(col)) cell.classList.add('special');
+        if (r === ROWS-1) cell.classList.add('bottom-row');
+      });
+    }
+
+    function flashWrong() {
+      gridEl.classList.add('wrong-flash');
+      setTimeout(() => gridEl.classList.remove('wrong-flash'), 200);
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    function updateScore() { scoreEl.textContent = score; }
+    function updateCombo() { comboEl.textContent = combo; }
+    function updateBPS() {
+      const now = performance.now();
+      while (clickTimestamps.length && now - clickTimestamps[0] > BPS_WINDOW) clickTimestamps.shift();
+      bpsEl.textContent = clickTimestamps.length ? (clickTimestamps.length/(now-clickTimestamps[0])*1000).toFixed(1) : '0.0';
+    }
+
+    function recordClick() { clickTimestamps.push(performance.now()); updateBPS(); }
+
+    function eliminateBottomRow(col) {
+      const bottom = gridState[ROWS-1];
+      if (!bottom.includes(col)) {
+        flashWrong();
+        combo = 0;
+        updateCombo();
+        playError(); // 错误音效受模式控制
+        return false;
+      }
+      bottom.splice(bottom.indexOf(col), 1);
+      columnCounts[col]--;
+      recordClick();
+      score++;
+      combo++;
+      updateScore();
+      updateCombo();
+
+      if (bottom.length === 0) {
+        playMelodyNote(); // 旋律音效受模式控制
+        gridState.pop();
+        totalRowsGenerated++;
+        const top = gridState[0] || [];
+        const newCols = generateRow(top);
+        gridState.unshift(newCols);
+        newCols.forEach(c => columnCounts[c]++);
+        updateMissCounts(newCols);
+      }
+      refreshGridClasses();
+      if (navigator.vibrate) navigator.vibrate(30);
+      return true;
+    }
+
+    function handleCellClick(e) {
+      const cell = e.target.closest('.cell');
+      if (cell) eliminateBottomRow(+cell.dataset.col);
+    }
+
+    function handleKeyDown(e) {
+      const key = e.key.toLowerCase();
+      let col = -1;
+      const maps = { '7k':['a','s','d',' ','j','k','l'], '6k':['s','d','f','j','k','l'], '5k':['d','f','j','k','l'], '4k':['d','f','j','k'] };
+      const keys = maps[currentMode] || maps['4k'];
+      for (let i = 0; i < keys.length; i++) {
+        if ((keys[i] === ' ' && key === ' ') || key === keys[i]) { col = i; break; }
+      }
+      if (col === -1) return;
+      e.preventDefault();
+      eliminateBottomRow(col);
+    }
+
+    function updateKeyHints() {
+      keyHintEl.innerHTML = '';
+      KEY_MAP.forEach((k, i) => {
+        const badge = document.createElement('span');
+        badge.className = 'key-badge';
+        badge.textContent = k === '␣' ? '空格' : k;
+        if (SPECIAL_COLS.includes(i)) badge.classList.add('special-key');
+        keyHintEl.appendChild(badge);
+      });
+    }
+
+    function resetGame() {
+      columnCounts = new Array(COLS).fill(0);
+      columnMissCounts = new Array(COLS).fill(0);
+      gridState = [];
+      totalRowsGenerated = 0;
+      score = 0;
+      combo = 0;
+      grandAdjacentStreak = 0;
+      clickTimestamps.length = 0;
+      lastNoteIndex = Math.floor(Math.random() * MAJOR_SCALE.length);
+
+      let prev = [];
+      for (let i = 0; i < ROWS; i++) {
+        const nc = generateRow(prev);
+        gridState.push(nc);
+        nc.forEach(c => columnCounts[c]++);
+        updateMissCounts(nc);
+        prev = nc;
+        totalRowsGenerated++;
+      }
+      updateScore();
+      updateCombo();
+      updateBPS();
+      refreshGridClasses();
+      updateKeyHints();
+    }
+
+    function switchMode(mode) {
+      if (currentMode === mode) return;
+      currentMode = mode;
+      COLS = MODES[mode].cols;
+      KEY_MAP = MODES[mode].keys;
+      SPECIAL_COLS = MODES[mode].special;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+      if (!isPatternAvailable(currentPattern, COLS)) currentPattern = 'random';
+      cells = buildGridDOM();
+      updatePatternButtons();
+      resetGame();
+    }
+
+    function switchPattern(pattern) {
+      if (currentPattern === pattern || !isPatternAvailable(pattern, COLS)) return;
+      currentPattern = pattern;
+      updatePatternButtons();
+      resetGame();
+    }
+
+    // 事件绑定
+    gridEl.addEventListener('click', handleCellClick);
+    resetButton.addEventListener('click', resetGame);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R') { e.preventDefault(); resetGame(); } });
+    modeSelector.addEventListener('click', e => {
+      const btn = e.target.closest('.mode-btn');
+      if (btn && MODES[btn.dataset.mode]) switchMode(btn.dataset.mode);
+    });
+    patternSelector.addEventListener('click', e => {
+      const btn = e.target.closest('.pattern-btn');
+      if (btn && btn.dataset.pattern) switchPattern(btn.dataset.pattern);
+    });
+    soundSelector.addEventListener('click', e => {
+      const btn = e.target.closest('.sound-btn');
+      if (btn && btn.dataset.sound) switchSound(btn.dataset.sound);
+    });
+
+    document.body.addEventListener('click', initAudio, { once: true });
+    document.body.addEventListener('keydown', initAudio, { once: true });
+    setInterval(updateBPS, 150);
+
+    // 初始化
+    currentMode = null;
+    switchMode('4k');
+  })();
+</script>
+</body>
+</html>
