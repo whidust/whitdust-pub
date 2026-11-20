@@ -254,8 +254,7 @@ a:hover { text-decoration: underline; }
             <h3>先回答三个问题</h3>
             <label class="zl-row"><span>白尘最喜欢的游戏角色是？</span><input id="zl-a" type="text" autocomplete="off" spellcheck="false"></label>
             <label class="zl-row"><span>白尘的显卡型号是？</span><input id="zl-b" type="text" autocomplete="off" spellcheck="false"></label>
-            <label class="zl-row"><span>白尘现在每天吃的药都有哪些？</span><input id="zl-c" type="text" autocomplete="off" spellcheck="false"></label>
-            <p class="zl-hint">（慢性病药物，比如富马酸比索洛尔等）</p>
+            <label class="zl-row"><span>白尘最喜欢的游戏之一？</span><input id="zl-c" type="text" autocomplete="off" spellcheck="false"></label>
             <p id="zl-msg" class="zl-msg" hidden></p>
             <div class="zl-actions">
               <button type="button" id="zl-cancel">算了</button>
@@ -325,17 +324,19 @@ a:hover { text-decoration: underline; }
           }).join('');
       }
       // 第三问：命中 6 种写法里的任意一个，就归一成同一个标记
-      function normMed(s) {
-        var t = s.replace(/\s+/g, '');
-        if (t.indexOf('安非他酮') >= 0 || t.indexOf('喹硫平') >= 0 ||
-            t.indexOf('坦度螺酮') >= 0 || t.indexOf('丙戊酸镁') >= 0) return 'MEDS_OK';
+      function normGame(s) {
+        var t = s.replace(/\s+/g, '').toUpperCase();
+        var games = ['城市天际线', '死亡搁浅', '大表哥2', '荒野大镖客2', 'GTA5', '奥日与黑暗森林', '奥日', '星际拓荒', '刺客信条奥德赛', '光遇'];
+        for (var i = 0; i < games.length; i++) {
+          if (t.indexOf(games[i].toUpperCase()) >= 0) return 'MEDS_OK';
+        }
         return '';
       }
       function makeKey1(a, b, c) {
         var k1 = a.trim();
         var k2 = b.replace(/\s+/g, '').toUpperCase().replace(/^RTX/, '');
-        var k3 = normMed(c);
-        if (!k3) return Promise.reject(new Error('med'));
+        var k3 = normGame(c);
+        if (!k3) return Promise.reject(new Error('game'));
         var enc = new TextEncoder();
         return crypto.subtle.importKey('raw', enc.encode(k1 + '\u0000' + k2 + '\u0000' + k3), 'PBKDF2', false, ['deriveKey'])
           .then(function (base) {
