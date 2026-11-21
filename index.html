@@ -1,58 +1,175 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Whitdust</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="description" content="whitdust.com">
+<meta name="color-scheme" content="light dark">
+<script>
+  // 首屏定主题：先看上次手动选的，没选过就跟随系统。
+  // 这段必须跑在样式表之前，否则样式先按浅色画一遍再翻黑，会闪一下。
+  (function () {
+    var t;
+    try { t = localStorage.getItem('whitdust-theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') {
+      t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <style>
 :root {
   --bg-top: #eff6fe;
   --bg-bottom: #dbeaf8;
+  --glow-a: rgba(126, 180, 226, 0.58);
+  --glow-b: rgba(163, 205, 236, 0.46);
   --panel: #fbfdff;
+  --panel-top: #ffffff;
   --line: #cfe0f2;
   --line-strong: #b9d3ea;
   --fg: #22303f;
   --muted: #6f869c;
   --accent: #3f74a8;
-  --shadow-soft: 0 2px 6px rgba(70, 110, 150, 0.06);
-  --shadow-lift: 0 8px 22px rgba(70, 110, 150, 0.14);
-  --radius: 6px;
+  --accent-soft: rgba(63, 116, 168, 0.12);
+  --accent-grad: linear-gradient(142deg, #5189c2 0%, #33628c 100%);
+  /* 半透明白：浅色下是"薄薄一层白"，深色下换成"薄薄一层亮"，不然会糊成白雾 */
+  --wash: rgba(255, 255, 255, 0.5);
+  --wash-strong: rgba(255, 255, 255, 0.62);
+  --scrim: rgba(30, 45, 60, 0.38);
+  --shadow-soft: 0 3px 12px rgba(70, 110, 150, 0.10);
+  --shadow-lift: 0 20px 46px rgba(63, 116, 168, 0.20);
+  --shadow-deep: 0 34px 84px rgba(40, 80, 120, 0.30);
+  --radius: 18px;
+  --radius-sm: 13px;
   --max: 62rem;
+}
+
+/* 深色：同一个蓝的暗部，不是纯黑。阴影在黑底上看不见，换成更深的投影 + 描边层次。 */
+html[data-theme="dark"] {
+  --bg-top: #0d1620;
+  --bg-bottom: #16232f;
+  --glow-a: rgba(88, 148, 208, 0.34);
+  --glow-b: rgba(58, 104, 152, 0.40);
+  --panel: #17232f;
+  --panel-top: #1e2d3c;
+  --line: #24384a;
+  --line-strong: #2f4759;
+  --fg: #dce7f2;
+  --muted: #8199ae;
+  --accent: #6da8dc;
+  --accent-soft: rgba(109, 168, 220, 0.16);
+  --accent-grad: linear-gradient(142deg, #83bceb 0%, #4a86bb 100%);
+  --wash: rgba(255, 255, 255, 0.035);
+  --wash-strong: rgba(255, 255, 255, 0.055);
+  --scrim: rgba(2, 8, 14, 0.62);
+  --shadow-soft: 0 3px 14px rgba(0, 0, 0, 0.38);
+  --shadow-lift: 0 20px 48px rgba(0, 0, 0, 0.50);
+  --shadow-deep: 0 34px 88px rgba(0, 0, 0, 0.62);
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+
+/* 滚动条：跟着主题走。Chrome/Edge/Safari 一套写法，Firefox 另一套，两边都要。 */
+html { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* 选中一段字时的底色，别用系统那个跟配色打架的深蓝 */
+::selection { background: rgba(63, 116, 168, 0.24); color: inherit; }
+html[data-theme="dark"] ::selection { background: rgba(109, 168, 220, 0.34); color: #f2f8ff; }
 
 body {
   margin: 0;
   min-height: 100vh;
   background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%) fixed;
   color: var(--fg);
-  font: 16px/1.75 "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  font: 16px/1.7 "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  transition: color 0.32s ease;
+  -webkit-font-smoothing: antialiased;
 }
 
-.wrap { max-width: var(--max); margin: 0 auto; padding: 2.2rem 1.25rem 4rem; }
+/* ===== 背景动效层 =====
+   固定在内容后面（z-index: -1），两种模式各一层，靠 opacity 淡入淡出切换。
+   浅色：纯 CSS 三团同色系光斑缓慢漂移，40 秒一个来回，不上 canvas 省电。
+   深色：canvas 粒子，见页面底部的脚本。 */
+.bg-layer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+
+.bg-flow {
+  opacity: 0;
+  background:
+    radial-gradient(48rem 40rem at 8% 10%, var(--glow-a), transparent 72%),
+    radial-gradient(44rem 36rem at 92% 22%, var(--glow-b), transparent 74%),
+    radial-gradient(50rem 40rem at 32% 52%, var(--glow-b), transparent 76%),
+    radial-gradient(54rem 44rem at 78% 96%, var(--glow-a), transparent 74%);
+  background-repeat: no-repeat;
+  animation: drift 44s ease-in-out infinite alternate;
+  will-change: transform;
+}
+html[data-theme="light"] .bg-flow { opacity: 1; }
+
+@keyframes drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-2.6%, 1.8%, 0) scale(1.07); }
+  100% { transform: translate3d(2.4%, -1.6%, 0) scale(1.03); }
+}
+
+.bg-net { opacity: 0; display: block; width: 100%; height: 100%; }
+html[data-theme="dark"] .bg-net { opacity: 1; }
+
+/* 系统开了「减少动态效果」就把两套动画都停掉，只留静态渐变 */
+@media (prefers-reduced-motion: reduce) {
+  .bg-flow { animation: none; }
+  .page.active { animation: none; }
+}
+
+.wrap { position: relative; z-index: 1; max-width: var(--max); margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
 /* 顶部：左边一个「回到主页」，中间四个栏目按钮整体居中 */
 .site-nav { position: relative; display: flex; justify-content: center; gap: 0.65rem; margin: 0 0 2rem; flex-wrap: wrap; }
 .nav-main { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; }
 
 .site-nav a {
+  position: relative;
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 7.2rem; padding: 0.72rem 1.6rem;
+  min-width: 7.8rem; padding: 0.85rem 1.8rem;
   background: var(--panel); color: var(--fg);
-  border: 1px solid var(--line); border-radius: var(--radius);
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
   box-shadow: var(--shadow-soft);
-  font-size: 1.02rem; font-weight: 500; letter-spacing: 0.06em;
+  font-size: 1.08rem; font-weight: 500; letter-spacing: 0.06em;
   text-decoration: none;
-  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease,
+              background-color 0.16s ease, color 0.16s ease;
   cursor: pointer;
 }
-.site-nav a:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow-lift); text-decoration: none; }
+.site-nav a:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  background: var(--panel-top);
+  box-shadow: var(--shadow-lift);
+  text-decoration: none;
+}
 .site-nav a.active {
-  background: var(--accent); border-color: var(--accent); color: #f6fbff;
-  box-shadow: 0 5px 16px rgba(63, 116, 168, 0.28);
+  background: var(--accent-grad);
+  border-color: transparent; color: #f6fbff;
+  box-shadow: 0 10px 30px rgba(63, 116, 168, 0.28);
 }
 
 /* 主页按钮：放在最左，样式跟四个栏目按钮一样；已经在主页时由脚本把它藏起来 */
@@ -63,7 +180,7 @@ details.zishu { margin: 1.4rem 0 0; }
 details.zishu summary {
   cursor: pointer; padding: 0.7rem 1rem;
   border: 1px solid var(--line-strong); border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--wash-strong);
   color: var(--muted); font-size: 0.95rem;
   list-style: none;
 }
@@ -78,7 +195,7 @@ details.zishu[open] summary {
   border: 1px solid var(--line); border-top: none;
   border-radius: 0 0 var(--radius) var(--radius);
   padding: 1.2rem 1.2rem 0.4rem;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--wash);
 }
 .zishu-body p { margin: 0 0 0.9rem; }
 
@@ -91,7 +208,7 @@ details.zishu[open] summary {
 .me-side { flex: 0 0 auto; position: sticky; top: 1rem; }
 .side-btn {
   display: inline-flex; align-items: center; padding: 0.6rem 1rem;
-  background: var(--panel); border: 1px dashed var(--line-strong); border-radius: var(--radius);
+  background: var(--panel); border: 1px dashed var(--line-strong); border-radius: var(--radius-sm);
   color: var(--muted); font: inherit; font-size: 0.9rem; cursor: pointer;
   transition: color 0.14s ease, border-color 0.14s ease;
 }
@@ -108,17 +225,24 @@ details.zishu[open] summary {
 }
 
 /* 自述的问答框 */
-.zl-modal { position: fixed; inset: 0; background: rgba(30,45,60,0.35); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; }
+.zl-modal { position: fixed; inset: 0; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 1.2rem; z-index: 50; animation: veilIn 0.2s ease; }
 .zl-modal[hidden] { display: none; }
-.zl-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 18px 50px rgba(30,60,90,0.25); width: min(30rem, 100%); padding: 1.4rem 1.5rem 1.2rem; }
+.zl-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-deep); width: min(30rem, 100%); padding: 1.4rem 1.5rem 1.2rem; animation: boxIn 0.24s cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+@keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes boxIn {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
 .zl-box h3 { margin: 0 0 1rem; font-size: 1rem; letter-spacing: 0.08em; color: var(--muted); }
 .zl-row { display: block; margin: 0 0 0.9rem; font-size: 0.94rem; }
 .zl-row span { display: block; margin-bottom: 0.35rem; }
-.zl-row input { width: 100%; padding: 0.55rem 0.7rem; font: inherit; font-size: 0.95rem; color: var(--fg); background: #fff; border: 1px solid var(--line-strong); border-radius: var(--radius); }
+.zl-row input { width: 100%; padding: 0.55rem 0.7rem; font: inherit; font-size: 0.95rem; color: var(--fg); background: var(--panel-top); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); }
 .zl-row input:focus { outline: 2px solid rgba(63,116,168,0.35); border-color: var(--accent); }
 .zl-msg { margin: 0.2rem 0 0.9rem; font-size: 0.9rem; color: var(--muted); }
 .zl-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
-.zl-actions button { font: inherit; font-size: 0.92rem; padding: 0.5rem 1.1rem; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--line-strong); background: var(--panel); color: var(--fg); }
+.zl-actions button { font: inherit; font-size: 0.92rem; padding: 0.5rem 1.1rem; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--line-strong); background: var(--panel); color: var(--fg); transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease; }
+.zl-actions button:hover { border-color: var(--accent); box-shadow: var(--shadow-soft); }
 .zl-actions #zl-ok, .zl-actions #zl2-ok { background: var(--accent); border-color: var(--accent); color: #f6fbff; }
 .zl-actions button:disabled { opacity: 0.6; cursor: default; }
 .zl-hint { margin: -0.5rem 0 0.8rem; font-size: 0.82rem; color: var(--muted); }
@@ -126,38 +250,96 @@ details.zishu[open] summary {
 
 /* 内容卡片 */
 .panel {
-  background: var(--panel);
+  position: relative;
+  background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 30%);
   border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow-lift);
-  padding: 2rem clamp(1.1rem, 3vw, 2.4rem);
+  padding: 2.8rem clamp(1.2rem, 3.4vw, 3rem);
+  transition: background 0.32s ease, border-color 0.32s ease, box-shadow 0.32s ease;
+}
+/* 卡片顶上一道蓝色细光，让白卡和背景分得开 */
+.panel::before {
+  content: '';
+  position: absolute; inset: 0 1.8rem auto 1.8rem; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
 }
 
-.panel h1 { margin: 0 0 0.4rem; font-size: 1.5rem; font-weight: 650; letter-spacing: 0.05em; }
-.panel .lead { margin: 0 0 1.4rem; color: var(--muted); font-size: 0.95rem; }
-.panel h2 { margin: 2rem 0 0.8rem; font-size: 1rem; font-weight: 650; color: var(--muted); letter-spacing: 0.12em; }
+.panel h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2.35rem; font-weight: 700; letter-spacing: 0.01em; line-height: 1.25;
+  color: var(--fg);
+}
+/* 标题做一点从左到右的深浅过渡。不支持裁剪的浏览器留着纯色，不会变成隐形字。 */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .panel h1 {
+    background: linear-gradient(118deg, var(--fg) 10%, var(--accent) 94%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+.panel .lead { margin: 0 0 1.6rem; color: var(--muted); font-size: 1.02rem; }
+/* 分节标题：前面一根短竖线，比单纯放大字号更清楚是"新的一节" */
+.panel h2 {
+  display: flex; align-items: center;
+  margin: 2.4rem 0 1rem;
+  font-size: 1.15rem; font-weight: 650; color: var(--muted); letter-spacing: 0.12em;
+}
+.panel h2::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 3px; height: 0.95em;
+  margin-right: 0.6rem;
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.8;
+}
 .panel p { margin: 0 0 0.9rem; }
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* 正文里的链接：下划线从左往右长出来，比直接跳出一道线柔和 */
+.panel p a {
+  text-decoration: none;
+  padding-bottom: 1px;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size 0.24s ease;
+}
+.panel p a:hover { background-size: 100% 1px; }
+
 .placeholder {
   margin: 1.2rem 0 0; padding: 1.4rem;
   border: 1px dashed var(--line-strong); border-radius: var(--radius);
   color: var(--muted); font-size: 0.92rem;
-  background: rgba(255, 255, 255, 0.5);
+  background: var(--wash);
 }
 
-/* 条目列表：一件一条 */
+/* 条目列表：一件一条，鼠标扫过时整行微微亮起 */
 .item-list { list-style: none; margin: 0; padding: 0; }
 .item-list li {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.6rem;
-  padding: 0.65rem 0; border-bottom: 1px solid var(--line);
+  padding: 0.72rem 0.85rem; margin: 0 -0.85rem;
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.18s ease, border-color 0.18s ease;
 }
+.item-list li:hover { background: var(--accent-soft); border-bottom-color: transparent; }
+.item-list li:last-child { border-bottom: none; }
 .item-list .meta { color: var(--muted); font-size: 0.85rem; }
 
-/* 栏目 */
+/* 栏目：切换时新版块淡入上移，不是硬跳 */
 .page { display: none; }
-.page.active { display: block; }
+.page.active { display: block; animation: pageIn 0.42s cubic-bezier(0.22, 0.61, 0.36, 1); }
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 @media (max-width: 34rem) {
   .wrap { padding: 1.4rem 1rem 3rem; }
@@ -167,9 +349,139 @@ a:hover { text-decoration: underline; }
   .nav-main a { flex: 1 1 calc(50% - 0.5rem); min-width: 0; padding: 0.65rem 0.8rem; font-size: 0.9rem; }
   .panel { padding: 1.4rem 1.1rem; }
 }
+
+/* ===== 主题切换按钮：右上角一个圆钮 ===== */
+.theme-btn {
+  position: fixed;
+  top: 1.15rem; right: 1.15rem;
+  z-index: 60;
+  width: 2.9rem; height: 2.9rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--fg);
+  font-size: 1.2rem; line-height: 1;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.22, 0.61, 0.36, 1), box-shadow 0.2s ease,
+              border-color 0.2s ease, background-color 0.32s ease, color 0.32s ease;
+}
+.theme-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lift);
+}
+.theme-btn:active { transform: translateY(0) scale(0.93); }
+.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 小屏上导航铺满整行，右上角会撞上，所以按钮挪到右下角 */
+@media (max-width: 34rem) {
+  .theme-btn { top: auto; bottom: 1.1rem; right: 1.1rem; }
+}
+
+/* ===== 右侧常驻栏：竖排，只有深色模式才出现 ===== */
+.side-rail {
+  position: fixed;
+  right: 1.15rem; top: 50%;
+  transform: translateY(-50%);
+  z-index: 55;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  pointer-events: none;
+}
+html[data-theme="dark"] .side-rail { display: flex; }
+
+.rail-btn {
+  width: 3.05rem; height: 3.05rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease,
+              background 0.18s ease, color 0.18s ease;
+}
+.rail-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--shadow-lift);
+}
+.rail-btn.on {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #f6fbff;
+  box-shadow: 0 8px 26px var(--accent-soft);
+}
+.rail-icon { width: 1.6rem; height: 1.6rem; display: block; }
+
+.rail-tip {
+  max-width: 5.6rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+@media (max-width: 60rem) {
+  .side-rail { right: 0.55rem; }
+}
+@media (max-width: 42rem) {
+  .side-rail { display: none !important; }
+}
+
+/* ===== 回到顶部：页面末尾一个上箭头，不放字 ===== */
+.to-top {
+  display: flex;
+  margin: 2.6rem auto 0;
+  width: 2.95rem; height: 2.95rem;
+  align-items: center; justify-content: center;
+  padding: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+.to-top:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--shadow-lift);
+}
+.to-top:active { transform: translateY(0) scale(0.94); }
+.to-top:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.to-top svg { width: 1.15rem; height: 1.15rem; display: block; }
 </style>
 </head>
 <body>
+<div class="bg-layer bg-flow" aria-hidden="true"></div>
+<canvas class="bg-layer bg-net" id="bg-net" aria-hidden="true"></canvas>
+<button type="button" class="theme-btn" id="theme-btn" aria-label="切换深浅色" title="切换深浅色">☾</button>
+
+<aside class="side-rail" aria-label="右侧工具栏">
+  <button type="button" class="rail-btn" id="unlimit-btn" aria-pressed="false" title="取消连线数量限制">
+    <svg class="rail-icon" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="6.5" cy="8.5" r="1.6" fill="currentColor" opacity=".45"/>
+      <circle cx="25.5" cy="6.5" r="1.0" fill="currentColor" opacity=".32"/>
+      <circle cx="27" cy="24" r="1.4" fill="currentColor" opacity=".42"/>
+      <circle cx="7.5" cy="25.5" r="1.0" fill="currentColor" opacity=".32"/>
+      <text x="16" y="21.5" text-anchor="middle" font-size="16" fill="currentColor">∞</text>
+    </svg>
+  </button>
+  <span class="rail-tip">不知道有什么用的按钮</span>
+</aside>
 <div class="wrap">
 
     <nav class="site-nav">
@@ -444,6 +756,12 @@ a:hover { text-decoration: underline; }
 
   </main>
 
+  <button type="button" class="to-top" id="to-top" aria-label="回到顶部" title="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V6M6 12l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
 </div>
 
 <script>
@@ -464,9 +782,264 @@ a:hover { text-decoration: underline; }
     var back = document.querySelector('.site-nav a.back');
     if (back) back.style.display = (want === 'home') ? 'none' : '';
     window.scrollTo(0, 0);
+    // 入场动画重播：active 类一直挂着不会自动重放，摘掉再挂一次，强制它从头跑
+    var cur = document.getElementById(want);
+    if (cur) {
+      cur.style.animation = 'none';
+      void cur.offsetWidth;
+      cur.style.animation = '';
+    }
   }
   window.addEventListener('hashchange', show);
   show();
+</script>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  // ---------- 深浅切换 ----------
+  var btn = document.getElementById('theme-btn');
+  function paintBtn() {
+    var dark = root.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀' : '☾';
+    btn.title = dark ? '切到浅色' : '切到深色';
+    btn.setAttribute('aria-label', btn.title);
+  }
+  btn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('whitdust-theme', next); } catch (e) {}
+    paintBtn();
+    // 直接启停，不完全依赖下面那个 MutationObserver（它没触发过就白等）
+    // 包一层 try：粒子这边就算出岔子，也不能把主题切换一起拖下水
+    try { if (next === 'dark') start(); else stop(); } catch (e) {}
+  });
+  paintBtn();
+
+  // ---------- 右侧栏那个按钮：开启后不再限制鼠标连线数量 ----------
+  // maxLink 在下面粒子那段里声明，这里先赋值没问题（var 会提升）。
+  var unlimitBtn = document.getElementById('unlimit-btn');
+  var unlimited = false;
+  if (unlimitBtn) {
+    unlimitBtn.addEventListener('click', function () {
+      unlimited = !unlimited;
+      maxLink = unlimited ? 9999 : 5;
+      unlimitBtn.classList.toggle('on', unlimited);
+      unlimitBtn.setAttribute('aria-pressed', unlimited ? 'true' : 'false');
+      unlimitBtn.title = unlimited ? '已取消限制，再点恢复' : '取消连线数量限制';
+    });
+  }
+
+  // ---------- 回到顶部 ----------
+  var toTop = document.getElementById('to-top');
+  if (toTop) {
+    toTop.addEventListener('click', function () {
+      var rm = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+      window.scrollTo({ top: 0, behavior: rm ? 'auto' : 'smooth' });
+    });
+  }
+
+  // ---------- 深色背景：缓慢漂移的粒子 + 近处连线 ----------
+  // 只在深色下跑；切走、切到别的标签页、系统要求减少动态时都停，不空转。
+  var canvas = document.getElementById('bg-net');
+  var ctx = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+  if (!ctx) return;
+
+  var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var W = 0, H = 0, dots = [], raf = 0, running = false;
+  var LINK = 13000; // 距离的平方，约 114px 以内才连线
+  var REACH = 165;  // 鼠标感应的半径
+  var maxLink = 5; // 鼠标最多连几根线，满了就顶掉最早连上的那根（右侧栏那个按钮能取消它）
+  var linked = [];  // 当前跟鼠标连着的点
+  var mouse = { x: -9999, y: -9999 };
+
+  // 鼠标 / 手指的位置。离开窗口就挪到很远，相当于松手
+  window.addEventListener('mousemove', function (e) {
+    mouse.x = e.clientX; mouse.y = e.clientY;
+  }, { passive: true });
+  window.addEventListener('mouseleave', function () {
+    mouse.x = -9999; mouse.y = -9999;
+  });
+  window.addEventListener('touchmove', function (e) {
+    var t = e.touches && e.touches[0];
+    if (t) { mouse.x = t.clientX; mouse.y = t.clientY; }
+  }, { passive: true });
+  window.addEventListener('touchend', function () {
+    mouse.x = -9999; mouse.y = -9999;
+  });
+
+  function build() {
+    var n = Math.min(160, Math.round((W * H) / 12000));
+    dots = [];
+    linked = [];
+    for (var i = 0; i < n; i++) {
+      // bx/by 是它自己的基础速度：被鼠标吸走以后，靠这两个值慢慢回到原来的漂移
+      var vx = (Math.random() - 0.5) * 0.2;
+      var vy = (Math.random() - 0.5) * 0.2;
+      dots.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: vx, vy: vy, bx: vx, by: vy,
+        r: 0.7 + Math.random() * 1.1,
+        linked: false
+      });
+    }
+  }
+
+  function resize() {
+    W = canvas.clientWidth || window.innerWidth;
+    H = canvas.clientHeight || window.innerHeight;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    build();
+  }
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    var i, j, a, b, dx, dy, d2, sp;
+
+    // 1. 点与点：够近才连一条极淡的线
+    ctx.lineWidth = 1;
+    for (i = 0; i < dots.length; i++) {
+      a = dots[i];
+      for (j = i + 1; j < dots.length; j++) {
+        b = dots[j];
+        dx = a.x - b.x;
+        dy = a.y - b.y;
+        d2 = dx * dx + dy * dy;
+        if (d2 < LINK) {
+          ctx.strokeStyle = 'rgba(109, 168, 220, ' + (0.16 * (1 - d2 / LINK)).toFixed(3) + ')';
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // 2. 鼠标/手指周围：最多连 maxLink 根，名额满了就顶掉最早连上的那根
+    if (mouse.x > -999) {
+      // 先摘掉已经飘出范围的点
+      for (i = linked.length - 1; i >= 0; i--) {
+        b = linked[i];
+        dx = b.x - mouse.x;
+        dy = b.y - mouse.y;
+        if (dx * dx + dy * dy > REACH * REACH) {
+          b.linked = false;
+          linked.splice(i, 1);
+        }
+      }
+      // 名额变少了（比如刚把「取消限制」关掉）：从最早连上的开始一根根断掉，
+      // 一帧断一根，看起来是收回去而不是啪一下消失
+      if (linked.length > maxLink) {
+        b = linked.shift();
+        b.linked = false;
+      }
+      // 新飘进来的补名额
+      for (i = 0; i < dots.length; i++) {
+        a = dots[i];
+        if (a.linked) continue;
+        dx = a.x - mouse.x;
+        dy = a.y - mouse.y;
+        if (dx * dx + dy * dy < REACH * REACH) {
+          if (linked.length >= maxLink) {
+            b = linked.shift();
+            b.linked = false;
+          }
+          a.linked = true;
+          linked.push(a);
+        }
+      }
+      // 画线 + 吸附：只作用在这几根上，其余的点照常自己漂
+      for (i = 0; i < linked.length; i++) {
+        a = linked[i];
+        dx = mouse.x - a.x;
+        dy = mouse.y - a.y;
+        d2 = dx * dx + dy * dy;
+        ctx.strokeStyle = 'rgba(150, 205, 245, ' + (0.42 * (1 - Math.sqrt(d2) / REACH)).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(mouse.x, mouse.y);
+        ctx.stroke();
+        a.vx += dx * 0.00012;
+        a.vy += dy * 0.00012;
+      }
+    } else if (linked.length) {
+      // 鼠标离开窗口：全部断开
+      for (i = 0; i < linked.length; i++) linked[i].linked = false;
+      linked.length = 0;
+    }
+
+    // 3. 移动、到边就绕到另一边、画点
+    for (i = 0; i < dots.length; i++) {
+      a = dots[i];
+      // 被吸偏的速度慢慢回到它自己的基础速度，所以手移开后它们会散回原来的漂移
+      a.vx = a.vx * 0.994 + a.bx * 0.006;
+      a.vy = a.vy * 0.994 + a.by * 0.006;
+      sp = Math.sqrt(a.vx * a.vx + a.vy * a.vy);
+      if (sp > 1.0) { a.vx = a.vx / sp * 1.0; a.vy = a.vy / sp * 1.0; }
+      a.x += a.vx;
+      a.y += a.vy;
+      if (a.x < -10) a.x = W + 10; else if (a.x > W + 10) a.x = -10;
+      if (a.y < -10) a.y = H + 10; else if (a.y > H + 10) a.y = -10;
+      ctx.fillStyle = 'rgba(165, 212, 248, 0.42)';
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (running || document.hidden) return;
+    if (root.getAttribute('data-theme') !== 'dark') return;
+    running = true;
+    // 系统开了「减少动态效果」时照画，但不让点跑，改成一张静止的星点图
+    if (reduce) drawOnce();
+    else raf = requestAnimationFrame(frame);
+  }
+  function drawOnce() {
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < dots.length; i++) {
+      var a = dots[i];
+      ctx.fillStyle = 'rgba(165, 212, 248, 0.42)';
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  function stop() {
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    ctx.clearRect(0, 0, W, H);
+  }
+
+  new MutationObserver(function () {
+    if (root.getAttribute('data-theme') === 'dark') start(); else stop();
+  }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) stop(); else start();
+  });
+
+  var rt = 0;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () {
+      var was = running;
+      if (was) stop();
+      resize();
+      if (was) start();
+    }, 180);
+  });
+
+  resize();
+  start();
+})();
 </script>
 </body>
 </html>
