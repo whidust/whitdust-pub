@@ -71,6 +71,8 @@ html[data-theme="dark"] {
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* 手机上点按钮不要闪一下蓝色方块 */
+* { -webkit-tap-highlight-color: transparent; }
 
 /* 滚动条：跟着主题走。Chrome/Edge/Safari 一套写法，Firefox 另一套，两边都要。 */
 html { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
@@ -142,9 +144,9 @@ html[data-theme="dark"] .bg-net { opacity: 1; }
 
 .wrap { position: relative; z-index: 1; max-width: var(--max); margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
-/* 顶部：左边一个「回到主页」，中间四个栏目按钮整体居中 */
-.site-nav { position: relative; display: flex; justify-content: center; gap: 0.65rem; margin: 0 0 2rem; flex-wrap: wrap; }
-.nav-main { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; }
+/* 顶部：左边一个「回到主页」，中间四个大区按钮整体居中 */
+.site-nav { position: relative; display: flex; justify-content: center; gap: 0.65rem; margin: 0 0 0.75rem; flex-wrap: wrap; }
+.main-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.65rem; }
 
 .site-nav a {
   position: relative;
@@ -172,8 +174,44 @@ html[data-theme="dark"] .bg-net { opacity: 1; }
   box-shadow: 0 10px 30px rgba(63, 116, 168, 0.28);
 }
 
-/* 主页按钮：放在最左，样式跟四个栏目按钮一样；已经在主页时由脚本把它藏起来 */
+/* 主页按钮：放在最左，样式跟四个大区按钮一样；已经在主页时由脚本把它藏起来 */
 .site-nav a.back { position: absolute; left: 0; top: 0; }
+
+/* ===== 子定向栏：跟在大区按钮下面一排，比主按钮轻一圈 ===== */
+.sub-nav {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 2rem;
+  min-height: 2.35rem;
+}
+.sub-nav-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; }
+
+.sub-nav-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.42rem 1.05rem;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.92rem; font-weight: 400; letter-spacing: 0.04em;
+  text-decoration: none;
+  transition: background-color 0.16s ease, border-color 0.16s ease,
+              color 0.16s ease, transform 0.16s ease;
+}
+.sub-nav-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--wash);
+  text-decoration: none;
+}
+.sub-nav-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
 
 /* 个人栏里的折叠：默认收着，点标题才展开 */
 details.zishu { margin: 1.4rem 0 0; }
@@ -219,7 +257,7 @@ details.zishu[open] summary {
   border: 1px dashed var(--line-strong); border-radius: var(--radius);
   color: var(--muted); background: rgba(255, 255, 255, 0.5);
 }
-@media (max-width: 40rem) {
+@media (max-width: 48rem) {
   .me-grid { display: block; }
   .me-side { position: static; margin-top: 1.4rem; }
 }
@@ -341,13 +379,50 @@ a:hover { text-decoration: underline; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== 平板竖屏及以下（768px）：四个大区按钮改成两列，字号和留白一起收 ===== */
+@media (max-width: 48rem) {
+  .wrap { padding: 2rem 1.15rem 3.5rem; }
+
+  /* 大区按钮放开最小宽度，否则 4 个 × 7.8rem 在窄屏上会溢出 */
+  .main-nav { width: 100%; gap: 0.55rem; }
+  .main-nav a { flex: 1 1 calc(50% - 0.55rem); min-width: 0; padding: 0.78rem 0.9rem; font-size: 1rem; }
+
+  /* 「主页」不能再绝对定位，否则会压住铺满整行的大区按钮 */
+  .site-nav a.back { position: static; width: auto; padding: 0.6rem 1.4rem; }
+
+  .sub-nav { gap: 0.38rem; margin-bottom: 1.6rem; }
+  .sub-nav-group { gap: 0.38rem; }
+  .sub-nav-btn { padding: 0.5rem 0.95rem; font-size: 0.9rem; }
+
+  .panel { padding: 2rem 1.2rem; }
+  .panel h1 { font-size: 1.95rem; }
+  .panel h2 { font-size: 1.05rem; }
+  .zl-box { padding: 1.2rem 1.1rem 1rem; }
+
+  /* 主题按钮挪到右下，别跟铺满整行的导航打架 */
+  .theme-btn { top: auto; bottom: 1.1rem; right: 1.1rem; }
+}
+
+/* ===== 手机竖屏（544px 及以下）：再收一档，触摸目标保持在 43px 上下 ===== */
 @media (max-width: 34rem) {
-  .wrap { padding: 1.4rem 1rem 3rem; }
-  .site-nav { gap: 0.5rem; }
+  .wrap { padding: 1.4rem 0.9rem 3rem; }
+
+  .site-nav { gap: 0.45rem; margin-bottom: 0.6rem; }
   .site-nav a.back { position: static; width: 100%; }
-  .nav-main { width: 100%; }
-  .nav-main a { flex: 1 1 calc(50% - 0.5rem); min-width: 0; padding: 0.65rem 0.8rem; font-size: 0.9rem; }
-  .panel { padding: 1.4rem 1.1rem; }
+
+  .main-nav { gap: 0.45rem; }
+  .main-nav a { flex: 1 1 calc(50% - 0.45rem); min-width: 0; padding: 0.72rem 0.6rem; font-size: 0.95rem; }
+
+  .sub-nav { gap: 0.32rem; margin-bottom: 1.4rem; }
+  .sub-nav-group { gap: 0.32rem; }
+  .sub-nav-btn { padding: 0.52rem 0.85rem; font-size: 0.87rem; }
+
+  .panel { padding: 1.5rem 1.05rem; }
+  .panel h1 { font-size: 1.7rem; }
+  .panel .lead { font-size: 0.94rem; }
+  .panel h2 { font-size: 1rem; margin: 1.9rem 0 0.8rem; }
+
+  .to-top { margin-top: 2rem; }
 }
 
 /* ===== 主题切换按钮：右上角一个圆钮 ===== */
@@ -376,10 +451,7 @@ a:hover { text-decoration: underline; }
 .theme-btn:active { transform: translateY(0) scale(0.93); }
 .theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* 小屏上导航铺满整行，右上角会撞上，所以按钮挪到右下角 */
-@media (max-width: 34rem) {
-  .theme-btn { top: auto; bottom: 1.1rem; right: 1.1rem; }
-}
+/* 主题按钮在小屏的位置已经并到上面 48rem 那一档里了 */
 
 /* ===== 右侧常驻栏：竖排，只有深色模式才出现 ===== */
 .side-rail {
@@ -435,8 +507,22 @@ html[data-theme="dark"] .side-rail { display: flex; }
 @media (max-width: 60rem) {
   .side-rail { right: 0.55rem; }
 }
-@media (max-width: 42rem) {
+/* 768 以下整条右侧栏隐藏，手机上横着放会挡住内容 */
+@media (max-width: 48rem) {
   .side-rail { display: none !important; }
+}
+
+/* ===== 触摸屏：没有真正的 hover，点一下之后样式会"粘住"，全部关掉 ===== */
+@media (hover: none) {
+  .site-nav a:hover { transform: none; border-color: var(--line); background: var(--panel); box-shadow: var(--shadow-soft); }
+  .sub-nav-btn:hover { border-color: var(--line); color: var(--muted); background: transparent; }
+  .item-list li:hover { background: transparent; border-bottom-color: var(--line); }
+  .item-list li:last-child:hover { border-bottom-color: transparent; }
+  .rail-btn:hover { transform: none; border-color: var(--line); color: var(--muted); box-shadow: var(--shadow-soft); }
+  .theme-btn:hover { transform: none; border-color: var(--line); box-shadow: var(--shadow-soft); }
+  .to-top:hover { transform: none; border-color: var(--line); color: var(--muted); box-shadow: var(--shadow-soft); }
+  .side-btn:hover { border-style: dashed; border-color: var(--line-strong); color: var(--muted); }
+  .panel p a:hover { background-size: 0% 1px; }
 }
 
 /* ===== 回到顶部：页面末尾一个上箭头，不放字 ===== */
@@ -484,13 +570,39 @@ html[data-theme="dark"] .side-rail { display: flex; }
 </aside>
 <div class="wrap">
 
-    <nav class="site-nav">
+    <!-- ===== 主定向栏：四个大区 ===== -->
+    <nav class="site-nav main-nav-bar">
     <a href="#home" class="back">主页</a>
-    <div class="nav-main">
-      <a href="#tools">工具</a>
-      <a href="#games">小游戏</a>
-      <a href="#docs">文档</a>
-      <a href="#me">个人</a>
+    <div class="main-nav">
+      <a href="#code"    class="main-nav-btn" data-group="code">代码区</a>
+      <a href="#game"    class="main-nav-btn" data-group="game">游戏区</a>
+      <a href="#docs"    class="main-nav-btn" data-group="docs">文档区</a>
+      <a href="#profile" class="main-nav-btn" data-group="profile">个人区</a>
+    </div>
+  </nav>
+
+  <!-- ===== 子定向栏：跟着上面选中的大区变，同一时间只显示一组 ===== -->
+  <nav class="sub-nav">
+    <div class="sub-nav-group" data-group="code">
+      <a href="#code-tools" class="sub-nav-btn" data-target="code-tools">工具</a>
+      <a href="#code-games" class="sub-nav-btn" data-target="code-games">小游戏</a>
+    </div>
+    <div class="sub-nav-group" data-group="game">
+      <a href="#game-skylines" class="sub-nav-btn" data-target="game-skylines">天际线</a>
+    </div>
+    <!-- 文档区。顺序固定：哲学 → 学习材料 → 心理学 → 碎碎念。
+         碎碎念永远排在最后一个（最右），加新子项时插在它前面。 -->
+    <div class="sub-nav-group" data-group="docs">
+      <a href="#docs-philosophy"  class="sub-nav-btn" data-target="docs-philosophy">哲学内容</a>
+      <a href="#docs-literature"  class="sub-nav-btn" data-target="docs-literature">学习材料</a>
+      <a href="#docs-psychology"  class="sub-nav-btn" data-target="docs-psychology">心理学内容</a>
+      <a href="#docs-notes"       class="sub-nav-btn" data-target="docs-notes">碎碎念</a>
+    </div>
+    <!-- 个人区。顺序固定：自我介绍 → 联系方式。
+         联系方式永远排在最后一个（最右），加新子项时插在它前面。 -->
+    <div class="sub-nav-group" data-group="profile">
+      <a href="#profile-intro"   class="sub-nav-btn" data-target="profile-intro">自我介绍</a>
+      <a href="#profile-contact" class="sub-nav-btn" data-target="profile-contact">联系方式</a>
     </div>
   </nav>
 
@@ -509,8 +621,8 @@ html[data-theme="dark"] .side-rail { display: flex; }
       </ul>
     </section>
 
-    <!-- ============ 工具 ============ -->
-    <section class="page" id="tools">
+    <!-- ============ 内容块 · 代码区 / 工具 ============ -->
+    <section class="page content-block" id="code-tools">
       <h1>工具</h1>
       <p class="lead">好用吗？我也不知道</p>
 
@@ -521,8 +633,8 @@ html[data-theme="dark"] .side-rail { display: flex; }
       </ul>
     </section>
 
-    <!-- ============ 小游戏 ============ -->
-    <section class="page" id="games">
+    <!-- ============ 内容块 · 代码区 / 小游戏 ============ -->
+    <section class="page content-block" id="code-games">
       <h1>小游戏</h1>
       <p class="lead">应该比较好玩吧，应该</p>
 
@@ -531,27 +643,47 @@ html[data-theme="dark"] .side-rail { display: flex; }
       </ul>
     </section>
 
-    <!-- ============ 文档 ============ -->
-    <section class="page" id="docs">
-      <h1>文档</h1>
-      <p class="lead">唯一正经的东西</p>
+    <!-- ============ 内容块 · 游戏区 / 天际线（占位） ============ -->
+    <section class="page content-block" id="game-skylines">
+      <h1>天际线</h1>
+      <p class="lead">待写</p>
+    </section>
+
+    <!-- ============ 内容块 · 文档区 / 哲学内容 ============ -->
+    <section class="page content-block" id="docs-philosophy">
+      <h1>哲学内容</h1>
+      <p class="lead">哲学与狗不得入内！</p>
 
       <ul class="item-list">
-        <li><a href="files/summary-v6.html" target="_blank" rel="noopener">系统化总结 v6 · 预览</a> <span class="meta">在网页里读，左边有目录</span></li>
-        <li><a href="files/summary-v6.docx">系统化总结 v6 · 下载</a> <span class="meta">.docx · 点它会下载</span></li>
+        <li><a href="files/summary-v6.html" target="_blank" rel="noopener">系统化总结 v6</a> <span class="meta">在网页里读，左边有目录</span></li>
       </ul>
     </section>
 
-    <!-- ============ 个人 ============ -->
-    <section class="page" id="me">
-      <h1>个人</h1>
-      <p class="lead">我是谁？这是一个好问题</p>
+    <!-- ============ 内容块 · 文档区 / 学习材料（锚点沿用 literature，别改） ============ -->
+    <section class="page content-block" id="docs-literature">
+      <h1>学习材料</h1>
+      <p class="lead">唯一正经的东西</p>
+    </section>
+
+    <!-- ============ 内容块 · 文档区 / 心理学内容（占位） ============ -->
+    <section class="page content-block" id="docs-psychology">
+      <h1>心理学内容</h1>
+      <p class="lead">心理学，很神奇吧</p>
+    </section>
+
+    <!-- ============ 内容块 · 文档区 / 碎碎念（占位） ============ -->
+    <section class="page content-block" id="docs-notes">
+      <h1>碎碎念</h1>
+      <p class="lead">真的是碎碎念...</p>
+    </section>
+
+    <!-- ============ 内容块 · 个人区 / 联系方式 ============ -->
+    <section class="page content-block" id="profile-contact">
+      <h1>联系方式</h1>
+      <p class="lead">想找到我？</p>
 
       <div class="me-grid">
         <div class="me-main">
-          <p>一个游戏玩家，仅此而已。平常玩单机3A，一些独立游戏，还有音游，二游目前只玩鸣潮。</p>
-
-          <h2>想找到我？</h2>
           <ul class="item-list contact">
             <li><span class="k">QQ</span> 669446734</li>
             <li><span class="k">微信</span> a13303330333</li>
@@ -593,6 +725,14 @@ html[data-theme="dark"] .side-rail { display: flex; }
           <button type="button" id="zishu-btn" class="side-btn">一些过去的事情</button>
         </aside>
       </div>
+    </section>
+
+    <!-- ============ 内容块 · 个人区 / 自我介绍 ============ -->
+    <section class="page content-block" id="profile-intro">
+      <h1>自我介绍</h1>
+      <p class="lead">我是谁？这是一个好问题</p>
+
+      <p>一个游戏玩家，仅此而已。平常玩单机3A，一些独立游戏，还有音游，二游目前只玩鸣潮。</p>
     </section>
 
         <script>
@@ -765,23 +905,66 @@ html[data-theme="dark"] .side-rail { display: flex; }
 </div>
 
 <script>
-  // 只做一件事：地址里的 #xxx 决定显示哪一栏，并把对应按钮点亮。
-  // 没有 # 或者 # 后面写错了，就显示主页。
-  var pages = ['home', 'tools', 'games', 'me', 'docs'];
+  // 两级导航：地址里的 #锚点 决定显示哪一块内容，两级按钮跟着点亮。
+  //   #home              主页（不属于任何大区）
+  //   #code / #game / #docs / #profile   进该大区第一个子项
+  //   #code-tools 这种   精确到子项
+  // 锚点写错了就回主页。
+
+  // 所有内容块，顺序不重要，只是个白名单
+  var pages = [
+    'home',
+    'code-tools', 'code-games',
+    'game-skylines',
+    'docs-philosophy', 'docs-psychology', 'docs-literature', 'docs-notes',
+    'profile-contact', 'profile-intro'
+  ];
+
+  // 只写了主区名时落到哪（一律落该区第一个子项）
+  var GROUP_DEFAULT = {
+    code: 'code-tools',
+    game: 'game-skylines',
+    docs: 'docs-philosophy',
+    profile: 'profile-intro'
+  };
+
   function show() {
     var want = (location.hash || '#home').slice(1);
+    if (GROUP_DEFAULT[want]) want = GROUP_DEFAULT[want];
     if (pages.indexOf(want) < 0) want = 'home';
+
+    // 内容块
     pages.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.classList.toggle('active', id === want);
     });
-    document.querySelectorAll('.site-nav a').forEach(function (a) {
-      a.classList.toggle('active', a.getAttribute('href') === '#' + want);
+
+    // 这块内容属于哪个大区（主页不属于任何区）
+    var group = (want === 'home') ? '' : want.split('-')[0];
+
+    // 主定向按钮：只有当前大区那个亮
+    document.querySelectorAll('.main-nav-btn').forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('data-group') === group);
     });
-    // 已经在主页时，那个「主页」按钮就不必出现
+
+    // 子定向栏：同一时间只显示当前大区那一组
+    document.querySelectorAll('.sub-nav-group').forEach(function (g) {
+      g.style.display = (g.getAttribute('data-group') === group) ? '' : 'none';
+    });
+
+    // 子定向按钮：只有当前那一块亮
+    document.querySelectorAll('.sub-nav-btn').forEach(function (a) {
+      a.classList.toggle('active', a.getAttribute('data-target') === want);
+    });
+
+    // 主页上：整条子栏不占位置，「主页」返回键也藏起来
+    var subNav = document.querySelector('.sub-nav');
+    if (subNav) subNav.style.display = group ? '' : 'none';
     var back = document.querySelector('.site-nav a.back');
     if (back) back.style.display = (want === 'home') ? 'none' : '';
+
     window.scrollTo(0, 0);
+
     // 入场动画重播：active 类一直挂着不会自动重放，摘掉再挂一次，强制它从头跑
     var cur = document.getElementById(want);
     if (cur) {
@@ -871,7 +1054,9 @@ html[data-theme="dark"] .side-rail { display: flex; }
   });
 
   function build() {
-    var n = Math.min(160, Math.round((W * H) / 12000));
+    // 手机屏幕小，点少一半、密度也降一档，不然中低端机跑满 160 个点会卡
+    var narrow = window.innerWidth < 768;
+    var n = Math.min(narrow ? 60 : 160, Math.round((W * H) / (narrow ? 16000 : 12000)));
     dots = [];
     linked = [];
     for (var i = 0; i < n; i++) {
