@@ -38,6 +38,11 @@
   --wash: rgba(255, 255, 255, 0.5);
   --wash-strong: rgba(255, 255, 255, 0.62);
   --scrim: rgba(30, 45, 60, 0.38);
+  /* 子定向按钮的底色：浅色下透明（背景本身就是浅渐变，看不出来）；
+     深色下必须是不透明的，否则背景粒子会从按钮底下透出来。 */
+  --chip: transparent;
+  --chip-hover: var(--wash);
+  --chip-active: var(--accent-soft);
   --shadow-soft: 0 3px 12px rgba(70, 110, 150, 0.10);
   --shadow-lift: 0 20px 46px rgba(63, 116, 168, 0.20);
   --shadow-deep: 0 34px 84px rgba(40, 80, 120, 0.30);
@@ -64,6 +69,10 @@ html[data-theme="dark"] {
   --wash: rgba(255, 255, 255, 0.035);
   --wash-strong: rgba(255, 255, 255, 0.055);
   --scrim: rgba(2, 8, 14, 0.62);
+  /* 深色下的实底：正常 / 悬停 / 选中三种状态都不透明，粒子透不上来 */
+  --chip: #101c27;
+  --chip-hover: #16273a;
+  --chip-active: #1b3047;
   --shadow-soft: 0 3px 14px rgba(0, 0, 0, 0.38);
   --shadow-lift: 0 20px 48px rgba(0, 0, 0, 0.50);
   --shadow-deep: 0 34px 88px rgba(0, 0, 0, 0.62);
@@ -192,7 +201,7 @@ html[data-theme="dark"] .bg-net { opacity: 1; }
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0.42rem 1.05rem;
   border-radius: 999px;
-  background: transparent;
+  background: var(--chip);
   border: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.92rem; font-weight: 400; letter-spacing: 0.04em;
@@ -203,11 +212,11 @@ html[data-theme="dark"] .bg-net { opacity: 1; }
 .sub-nav-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: var(--wash);
+  background: var(--chip-hover);
   text-decoration: none;
 }
 .sub-nav-btn.active {
-  background: var(--accent-soft);
+  background: var(--chip-active);
   border-color: var(--accent);
   color: var(--accent);
   font-weight: 600;
@@ -516,7 +525,7 @@ html[data-theme="dark"] .side-rail { display: flex; }
 /* ===== 触摸屏：没有真正的 hover，点一下之后样式会"粘住"，全部关掉 ===== */
 @media (hover: none) {
   .site-nav a:hover { transform: none; border-color: var(--line); background: var(--panel); box-shadow: var(--shadow-soft); }
-  .sub-nav-btn:hover { border-color: var(--line); color: var(--muted); background: transparent; }
+  .sub-nav-btn:hover { border-color: var(--line); color: var(--muted); background: var(--chip); }
   .item-list li:hover { background: transparent; border-bottom-color: var(--line); }
   .item-list li:last-child:hover { border-bottom-color: transparent; }
   .rail-btn:hover { transform: none; border-color: var(--line); color: var(--muted); box-shadow: var(--shadow-soft); }
