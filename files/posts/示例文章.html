@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>示例文章 · Whitdust</title>
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<script>
+  // 首屏定主题：跟主页同一套规则——先看上次手动选的，没选过就跟随系统。必须跑在样式表之前。
+  (function () {
+    var t;
+    try { t = localStorage.getItem('whitdust-theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') {
+      t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+:root {
+  --bg-top: #eff6fe;
+  --bg-bottom: #dbeaf8;
+  --panel: #fbfdff;
+  --line: #cfe0f2;
+  --line-strong: #b9d3ea;
+  --fg: #22303f;
+  --muted: #6f869c;
+  --accent: #3f74a8;
+  --accent-soft: rgba(63, 116, 168, 0.12);
+  --radius: 18px;
+  --radius-card: 22px;
+  --shadow-soft: 0 3px 12px rgba(70, 110, 150, 0.10);
+  --shadow-lift: 0 20px 46px rgba(63, 116, 168, 0.20);
+  --scrim: rgba(30, 45, 60, 0.38);
+
+  /* 正文卡片：浅色下是一张白纸 */
+  --card: #ffffff;
+  --card-line: #cfe0f2;
+  --card-shadow: 0 14px 40px rgba(70, 110, 150, 0.12), 0 2px 7px rgba(70, 110, 150, 0.07);
+
+  --col: 46rem;     /* 框里正文的宽度，想更宽改这个 */
+  --rail: 13.5rem;  /* 左右两侧的宽度 */
+  --pad: 2.9rem;    /* 卡片内边距（正文宽度不受影响） */
+}
+html[data-theme="dark"] {
+  --bg-top: #0d1620;
+  --bg-bottom: #16232f;
+  --panel: #17232f;
+  --line: #24384a;
+  --line-strong: #2f4759;
+  --fg: #dce7f2;
+  --muted: #8199ae;
+  --accent: #6da8dc;
+  --accent-soft: rgba(109, 168, 220, 0.16);
+  --shadow-soft: 0 3px 14px rgba(0, 0, 0, 0.38);
+  --shadow-lift: 0 20px 48px rgba(0, 0, 0, 0.50);
+  --scrim: rgba(2, 8, 14, 0.62);
+
+  /* 深色：近黑但不是纯黑（带一点蓝），边上一圈淡光 */
+  --card: #0b151f;
+  --card-line: rgba(109, 168, 220, 0.26);
+  --card-shadow:
+    0 0 0 1px rgba(109, 168, 220, 0.20),
+    0 0 30px rgba(109, 168, 220, 0.14),
+    0 24px 64px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%) fixed;
+  color: var(--fg);
+  font: 16px/1.75 "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: color 0.32s ease;
+}
+body.no-scroll { overflow: hidden; }
+
+/* ---------- 三栏骨架：左目录 / 正文卡片 / 右侧栏 ---------- */
+.layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2.6rem;
+  max-width: 92rem;
+  margin: 0 auto;
+  padding: 4.4rem 2rem 5.5rem;
+}
+.main-col { flex: 0 1 auto; width: calc(var(--col) + 2 * var(--pad)); min-width: 0; }
+.rail {
+  flex: 0 0 var(--rail);
+  position: sticky;
+  top: 4.4rem;
+  align-self: flex-start;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+}
+.rail.is-hidden, .mobile-tools .is-hidden { display: none; }
+
+/* ---------- 正文卡片 ---------- */
+.card {
+  padding: var(--pad);
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+  transition: background 0.32s ease, border-color 0.32s ease, box-shadow 0.32s ease;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 1.9rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.back:hover { color: var(--accent); transform: translateX(-2px); }
+
+/* ---------- 正文 ---------- */
+h1 {
+  margin: 0 0 0.55rem;
+  font-size: clamp(1.6rem, 3.4vw, 2.15rem);
+  line-height: 1.36;
+  letter-spacing: 0.01em;
+}
+.date { margin: 0 0 2.4rem; color: var(--muted); font-size: 0.9rem; }
+.body p { margin: 0 0 1.35rem; }
+.body h2 { margin: 2.6rem 0 0.95rem; font-size: 1.2rem; line-height: 1.5; }
+.body h3 { margin: 2rem 0 0.8rem; font-size: 1.05rem; color: var(--muted); font-weight: 600; }
+.body ul, .body ol { margin: 0 0 1.35rem; padding-left: 1.3rem; }
+.body li { margin: 0.35rem 0; }
+.body blockquote {
+  margin: 1.8rem 0;
+  padding: 0.15rem 0 0.15rem 1.05rem;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+}
+.body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.8rem 0;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+.body a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.body code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  font-size: 0.92em;
+}
+.body pre {
+  margin: 0 0 1.4rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.body pre code { padding: 0; background: none; }
+
+/* ---------- 左侧目录 ---------- */
+.rail-title {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+}
+.toc a {
+  display: block;
+  margin-left: -0.55rem;
+  padding: 0.32rem 0.55rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-decoration: none;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+.toc a.lvl3 { padding-left: 1.2rem; font-size: 0.86rem; }
+.toc a:hover { color: var(--accent); background: var(--accent-soft); }
+
+/* ---------- 右侧栏 ---------- */
+.rail-block + .rail-block { margin-top: 1.7rem; }
+.rail-note { margin: 0; color: var(--muted); font-size: 0.87rem; line-height: 1.65; }
+.rail-note a { color: var(--accent); }
+
+/* ---------- 移动端的抽屉按钮和抽屉本体 ---------- */
+.mobile-tools { display: none; gap: 0.6rem; margin-bottom: 1.4rem; }
+.mobile-tools button {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.mobile-tools button:active { transform: scale(0.97); }
+.rail-close { display: none; }
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease;
+}
+.scrim.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 1120px) {
+  .layout { gap: 2rem; }
+  .rail-right { display: none; }
+}
+@media (max-width: 900px) {
+  :root { --pad: 1.5rem; }
+  .layout { display: block; padding: 3.8rem 1rem 4rem; }
+  .main-col { width: auto; max-width: calc(var(--col) + 2 * var(--pad)); margin: 0 auto; }
+  .mobile-tools { display: flex; }
+  .rail {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    z-index: 70;
+    width: min(84vw, 19rem);
+    max-height: none;
+    padding: 1.8rem 1.25rem 2rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-lift);
+    overflow-y: auto;
+    transition: transform 0.28s ease;
+  }
+  .rail-left { left: 0; transform: translateX(-102%); border-radius: 0 var(--radius) var(--radius) 0; }
+  .rail-right { right: 0; display: block; transform: translateX(102%); border-radius: var(--radius) 0 0 var(--radius); }
+  .rail.open { transform: none; }
+  .rail-close {
+    display: block;
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .toc a { padding: 0.5rem 0.55rem; font-size: 0.95rem; }
+  h1 { font-size: clamp(1.5rem, 6vw, 1.9rem); }
+}
+@media (max-width: 544px) {
+  :root { --pad: 1.2rem; }
+  .layout { padding: 3.4rem 0.85rem 3.6rem; }
+  .card { border-radius: 18px; }
+}
+
+/* ---------- 深浅切换按钮 ---------- */
+.theme-btn {
+  position: fixed;
+  top: 1.15rem;
+  right: 1.15rem;
+  z-index: 80;
+  width: 2.45rem;
+  height: 2.45rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.theme-btn:hover { color: var(--accent); border-color: var(--line-strong); transform: translateY(-1px); }
+.theme-btn:active { transform: translateY(0) scale(0.93); }
+.theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 544px) {
+  .theme-btn { top: auto; bottom: 1.1rem; right: 1.1rem; }
+}
+</style>
+</head>
+<body>
+
+<button type="button" class="theme-btn" id="theme-btn" aria-label="切换深浅色" title="切换深浅色">☾</button>
+
+<div class="layout">
+
+  <!-- ============ 左侧：目录（自动从正文的 h2/h3 生成；没有小标题就整栏不显示） ============ -->
+  <aside class="rail rail-left" id="rail-left">
+    <button type="button" class="rail-close" data-close aria-label="收起目录">×</button>
+    <p class="rail-title">目录</p>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <div class="main-col">
+    <!-- 返回链接：改成本文所属栏目的锚点。碎碎念 #docs-notes / 心理学 #docs-psychology / 学习材料 #docs-literature -->
+    <a class="back" href="../../index.html#docs-notes">← 碎碎念</a>
+
+    <div class="mobile-tools" id="mobile-tools">
+      <button type="button" id="btn-toc" data-open="rail-left">目录</button>
+      <button type="button" id="btn-side" data-open="rail-right">侧栏</button>
+    </div>
+
+    <div class="card">
+      <h1>示例文章：样式长这样</h1>
+      <p class="date">2026-11-23</p>
+
+      <article class="body">
+        <p>这是一篇占位用的示例文章，定稿后可以直接删掉。这是正文第一段。每篇文章都是独立的一个 HTML 文件，样式全在这个文件里，下载回去双击就能看，不依赖站上的其它文件。</p>
+
+        <p>框里正文的宽度在文件开头的 <code>--col</code>，现在是 46rem；卡片内边距是 <code>--pad</code>，不占正文的宽度。左右两侧各占 <code>--rail</code>，13.5rem；哪边没内容，那一边就不占位置。</p>
+
+        <h2>小标题长这样</h2>
+
+        <p>二级标题会出现在左边的目录里，三级标题也会，只是缩进一级。手机上左边会变成一个抽屉，点「目录」按钮拉出来。</p>
+
+        <h3>三级标题</h3>
+
+        <p>列表、引用、图片、代码块都有现成样式：</p>
+
+        <ul>
+          <li>列表项一</li>
+          <li>列表项二</li>
+        </ul>
+
+        <blockquote>引用块是这个样子，左边一道主题色的细线。</blockquote>
+
+        <pre><code>代码块用的是等宽字体，浅色深色两套底色都跟着主题走。</code></pre>
+
+        <h2>框的效果</h2>
+
+        <p>浅色下这张白色卡片浮在淡蓝背景上，圆角、一层软阴影。切到深色，卡片换成近黑的深蓝底板（不是纯黑），边缘一圈淡蓝的光晕，跟背景分得开但还是一家人。</p>
+
+        <p>右边那一栏里现在有两块示例内容。你把这边删空，右边整栏（连带手机上那个「侧栏」按钮）就自动消失。</p>
+      </article>
+    </div>
+  </div>
+
+  <!-- ============ 右侧：侧边栏（留空或删掉里面的块，这一栏就不显示） ============ -->
+  <aside class="rail rail-right" id="rail-right">
+    <button type="button" class="rail-close" data-close aria-label="收起侧栏">×</button>
+    <div class="rail-block">
+      <p class="rail-title">关于这篇</p>
+      <p class="rail-note">这里可以放摘要、写作时间、或者一句题记。样式已经就位，写什么由你定。</p>
+    </div>
+    <div class="rail-block">
+      <p class="rail-title">相关</p>
+      <p class="rail-note">放别的文章链接、站内入口都行。这一块不想要就整段删掉。</p>
+    </div>
+  </aside>
+
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  // ---------- 深浅切换（跟主页同一套） ----------
+  var btn = document.getElementById('theme-btn');
+  function paintBtn() {
+    var dark = root.getAttribute('data-theme') === 'dark';
+    btn.textContent = dark ? '☀' : '☾';
+    btn.title = dark ? '切到浅色' : '切到深色';
+    btn.setAttribute('aria-label', btn.title);
+  }
+  btn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('whitdust-theme', next); } catch (e) {}
+    paintBtn();
+  });
+  paintBtn();
+
+  // ---------- 目录：从正文的 h2/h3 自动生成 ----------
+  var toc = document.getElementById('toc');
+  var heads = document.querySelectorAll('.body h2, .body h3');
+  for (var i = 0; i < heads.length; i++) {
+    var h = heads[i];
+    if (!h.id) h.id = 'sec-' + (i + 1);
+    var a = document.createElement('a');
+    a.href = '#' + h.id;
+    a.textContent = h.textContent.trim();
+    a.className = h.tagName === 'H3' ? 'lvl3' : 'lvl2';
+    toc.appendChild(a);
+  }
+
+  // ---------- 哪边没内容，哪边就不显示（桌面上连位置一起收掉，手机上连按钮一起藏） ----------
+  var railLeft = document.getElementById('rail-left');
+  var railRight = document.getElementById('rail-right');
+  var btnToc = document.getElementById('btn-toc');
+  var btnSide = document.getElementById('btn-side');
+
+  if (heads.length === 0) {
+    railLeft.classList.add('is-hidden');
+    btnToc.classList.add('is-hidden');
+  }
+  if (railRight.querySelectorAll('.rail-block').length === 0) {
+    railRight.classList.add('is-hidden');
+    btnSide.classList.add('is-hidden');
+  }
+
+  // ---------- 手机上的抽屉 ----------
+  var scrim = document.getElementById('scrim');
+  var opens = document.querySelectorAll('[data-open]');
+  var closes = document.querySelectorAll('[data-close]');
+
+  function closeDrawers() {
+    railLeft.classList.remove('open');
+    railRight.classList.remove('open');
+    scrim.classList.remove('show');
+    document.body.classList.remove('no-scroll');
+  }
+  function openDrawer(id) {
+    closeDrawers();
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('open');
+    scrim.classList.add('show');
+    document.body.classList.add('no-scroll');
+  }
+  for (var k = 0; k < opens.length; k++) {
+    opens[k].addEventListener('click', function () { openDrawer(this.getAttribute('data-open')); });
+  }
+  for (var m = 0; m < closes.length; m++) {
+    closes[m].addEventListener('click', closeDrawers);
+  }
+  scrim.addEventListener('click', closeDrawers);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawers(); });
+  // 点目录里的条目后自动收起抽屉
+  toc.addEventListener('click', function (e) { if (e.target.tagName === 'A') closeDrawers(); });
+})();
+</script>
+
+</body>
+</html>

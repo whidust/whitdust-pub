@@ -369,6 +369,7 @@ a:hover { text-decoration: underline; }
 .item-list li:hover { background: var(--accent-soft); border-bottom-color: transparent; }
 .item-list li:last-child { border-bottom: none; }
 .item-list .meta { color: var(--muted); font-size: 0.85rem; }
+.post-empty { margin: 0.9rem 0 0; color: var(--muted); font-size: 0.92rem; }
 
 /* 栏目：切换时新版块淡入上移，不是硬跳 */
 .page { display: none; }
@@ -663,18 +664,39 @@ html[data-theme="dark"] .side-rail { display: flex; }
     <section class="page content-block" id="docs-literature">
       <h1>学习材料</h1>
       <p class="lead">唯一正经的东西</p>
+
+      <ul class="item-list">
+        <!-- 文章条目格式（照抄这一行改）：
+             <li><a href="files/posts/文件名.html" target="_blank" rel="noopener">标题</a> <span class="meta">2026-11-23</span></li>
+        -->
+      </ul>
+      <p class="post-empty">还没有文章。</p>
     </section>
 
     <!-- ============ 内容块 · 文档区 / 心理学内容（占位） ============ -->
     <section class="page content-block" id="docs-psychology">
       <h1>心理学内容</h1>
       <p class="lead">心理学，很神奇吧</p>
+
+      <ul class="item-list">
+        <!-- 文章条目格式（照抄这一行改）：
+             <li><a href="files/posts/文件名.html" target="_blank" rel="noopener">标题</a> <span class="meta">2026-11-23</span></li>
+        -->
+      </ul>
+      <p class="post-empty">还没有文章。</p>
     </section>
 
     <!-- ============ 内容块 · 文档区 / 碎碎念（占位） ============ -->
     <section class="page content-block" id="docs-notes">
       <h1>碎碎念</h1>
       <p class="lead">真的是碎碎念...</p>
+
+      <ul class="item-list">
+        <!-- 文章条目格式（照抄这一行改）：
+             <li><a href="files/posts/文件名.html" target="_blank" rel="noopener">标题</a> <span class="meta">2026-11-23</span></li>
+        -->
+      </ul>
+      <p class="post-empty">还没有文章。</p>
     </section>
 
     <!-- ============ 内容块 · 个人区 / 联系方式 ============ -->
