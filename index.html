@@ -775,9 +775,9 @@ html[data-theme="dark"] .side-rail { display: flex; }
             return '<p>' + x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</p>';
           }).join('');
       }
-      // 第三问：命中 6 种写法里的任意一个，就归一成同一个标记
+      // 第三问：命中列出的任意一种写法就归一成同一个标记；空白和冒号（：和:）都不算数
       function normGame(s) {
-        var t = s.replace(/\s+/g, '').toUpperCase();
+        var t = s.replace(/\s+/g, '').replace(/[：:]/g, '').toUpperCase();
         var games = ['城市天际线', '死亡搁浅', '大表哥2', '荒野大镖客2', 'GTA5', '奥日与黑暗森林', '奥日', '星际拓荒', '刺客信条奥德赛', '光遇'];
         for (var i = 0; i < games.length; i++) {
           if (t.indexOf(games[i].toUpperCase()) >= 0) return 'MEDS_OK';
@@ -795,6 +795,27 @@ html[data-theme="dark"] .side-rail { display: flex; }
             return crypto.subtle.deriveKey(
               { name: 'PBKDF2', salt: b64(ENC.salt), iterations: ENC.iters, hash: 'SHA-256' },
               base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+          });
+      }
+      // 第一问：同角色的几种叫法都算数，各自试一把钥匙；原输入永远第一个试，原有解法一个字不动
+      function nameCandidates(s) {
+        var out = [];
+        function push(v) { if (v && out.indexOf(v) < 0) out.push(v); }
+        push(s.trim());
+        var t = s.replace(/\s+/g, '');
+        if (t.indexOf('草神') >= 0 || t.indexOf('小吉祥草王') >= 0 || t.indexOf('草王') >= 0) push('纳西妲');
+        return out;
+      }
+      // 依次试候选钥匙，哪个能解开就用哪个；全试完才把最后一个错误抛出去
+      function attempt1(cands, b, c) {
+        if (!cands.length) return Promise.reject(new Error('name'));
+        return makeKey1(cands[0], b, c)
+          .then(function (key) {
+            return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(ENC.iv) }, key, b64(ENC.ct));
+          })
+          .catch(function (err) {
+            if (cands.length > 1) return attempt1(cands.slice(1), b, c);
+            throw err;
           });
       }
       function negAns(s) {
@@ -843,10 +864,7 @@ html[data-theme="dark"] .side-rail { display: flex; }
       function submit1() {
         if (!window.crypto || !crypto.subtle) { say('这个浏览器不支持解密。传到网站上（https）再看就正常。'); return; }
         okBtn.disabled = true;
-        makeKey1(inA.value.trim(), inB.value.trim(), inC.value.trim())
-          .then(function (key) {
-            return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(ENC.iv) }, key, b64(ENC.ct));
-          })
+        attempt1(nameCandidates(inA.value), inB.value.trim(), inC.value.trim())
           .then(function (buf) {
             var obj = JSON.parse(new TextDecoder().decode(buf));
             inner = obj.inner;
