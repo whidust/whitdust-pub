@@ -591,12 +591,12 @@ html[data-theme="dark"] .side-rail { display: flex; }
     <div class="sub-nav-group" data-group="game">
       <a href="#game-skylines" class="sub-nav-btn" data-target="game-skylines">天际线</a>
     </div>
-    <!-- 文档区。顺序固定：哲学 → 学习材料 → 心理学 → 碎碎念。
-         碎碎念永远排在最后一个（最右），加新子项时插在它前面。 -->
+    <!-- 文档区。顺序固定：哲学 → 心理学 → 学习材料 → 碎碎念。
+         学习材料永远倒数第二，碎碎念永远最后（最右）；加新子项时插在「学习材料」前面。 -->
     <div class="sub-nav-group" data-group="docs">
       <a href="#docs-philosophy"  class="sub-nav-btn" data-target="docs-philosophy">哲学内容</a>
-      <a href="#docs-literature"  class="sub-nav-btn" data-target="docs-literature">学习材料</a>
       <a href="#docs-psychology"  class="sub-nav-btn" data-target="docs-psychology">心理学内容</a>
+      <a href="#docs-literature"  class="sub-nav-btn" data-target="docs-literature">学习材料</a>
       <a href="#docs-notes"       class="sub-nav-btn" data-target="docs-notes">碎碎念</a>
     </div>
     <!-- 个人区。顺序固定：自我介绍 → 联系方式。
@@ -660,10 +660,10 @@ html[data-theme="dark"] .side-rail { display: flex; }
       </ul>
     </section>
 
-    <!-- ============ 内容块 · 文档区 / 学习材料（锚点沿用 literature，别改） ============ -->
-    <section class="page content-block" id="docs-literature">
-      <h1>学习材料</h1>
-      <p class="lead">唯一正经的东西</p>
+    <!-- ============ 内容块 · 文档区 / 心理学内容（占位） ============ -->
+    <section class="page content-block" id="docs-psychology">
+      <h1>心理学内容</h1>
+      <p class="lead">心理学，很神奇吧</p>
 
       <ul class="item-list">
         <!-- 文章条目格式（照抄这一行改）：
@@ -673,10 +673,10 @@ html[data-theme="dark"] .side-rail { display: flex; }
       <p class="post-empty">还没有文章。</p>
     </section>
 
-    <!-- ============ 内容块 · 文档区 / 心理学内容（占位） ============ -->
-    <section class="page content-block" id="docs-psychology">
-      <h1>心理学内容</h1>
-      <p class="lead">心理学，很神奇吧</p>
+    <!-- ============ 内容块 · 文档区 / 学习材料（锚点沿用 literature，别改） ============ -->
+    <section class="page content-block" id="docs-literature">
+      <h1>学习材料</h1>
+      <p class="lead">唯一正经的东西</p>
 
       <ul class="item-list">
         <!-- 文章条目格式（照抄这一行改）：
