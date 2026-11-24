@@ -461,8 +461,6 @@ a:hover { text-decoration: underline; }
 .theme-btn:active { transform: translateY(0) scale(0.93); }
 .theme-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* 主题按钮在小屏的位置已经并到上面 48rem 那一档里了 */
-
 /* ===== 右侧常驻栏：竖排，只有深色模式才出现 ===== */
 .side-rail {
   position: fixed;
@@ -478,12 +476,12 @@ a:hover { text-decoration: underline; }
 html[data-theme="dark"] .side-rail { display: flex; }
 
 .rail-btn {
-  width: 3.05rem; height: 3.05rem;
+  width: 2.85rem; height: 2.85rem;
   display: inline-flex; align-items: center; justify-content: center;
   padding: 0;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   color: var(--muted);
   cursor: pointer;
   pointer-events: auto;
@@ -505,21 +503,136 @@ html[data-theme="dark"] .side-rail { display: flex; }
 }
 .rail-icon { width: 1.6rem; height: 1.6rem; display: block; }
 
-.rail-tip {
-  max-width: 5.6rem;
-  font-size: 0.68rem;
-  line-height: 1.35;
-  text-align: center;
+/* ===== 右侧栏里的卡片：两个按钮装在一起，看出这是个栏位 ===== */
+.rail-card {
+  width: 3.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.3rem 0.5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  pointer-events: auto;
+}
+/* 卡片里的按钮不再各带一层底和边框 */
+.rail-card .rail-btn:not(.on) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.rail-card .rail-btn:not(.on):hover {
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
+  transform: none;
+  box-shadow: none;
+}
+.rail-btn:disabled,
+.rail-card .rail-btn:disabled,
+.rail-card .rail-btn:not(.on):disabled:hover {
+  opacity: 0.34;
+  cursor: not-allowed;
+  filter: saturate(0.5);
+  background: transparent;
+  border-color: transparent;
   color: var(--muted);
-  opacity: 0.8;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== 池子：挂在右侧栏下面，只有深色模式才出现 ===== */
+.pool {
+  position: fixed;
+  right: 1.15rem;
+  top: 0; /* 真正的位置由脚本量完右侧栏再写进来 */
+  z-index: 55;
+  display: none;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(20, 36, 52, 0.92), rgba(13, 26, 39, 0.96));
+  border: 1px solid rgba(109, 168, 220, 0.26);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.34);
+  cursor: default;
+  transition: border-color 0.22s ease, box-shadow 0.22s ease,
+              background 0.22s ease, color 0.22s ease;
+}
+html[data-theme="dark"] .pool { display: grid; }
+.pool:hover {
+  border-color: rgba(150, 210, 250, 0.62);
+  background: linear-gradient(180deg, rgba(27, 49, 70, 0.95), rgba(17, 33, 48, 0.98));
+  box-shadow: 0 0 16px rgba(109, 168, 220, 0.42), 0 6px 20px rgba(0, 0, 0, 0.34);
+  color: rgba(200, 232, 255, 0.98);
+}
+.pool.full {
+  border-color: rgba(190, 232, 255, 0.9);
+  box-shadow: 0 0 26px rgba(140, 205, 250, 0.72), 0 6px 20px rgba(0, 0, 0, 0.34);
+}
+
+/* 开了无限吸附时：一圈圈往外散的涟漪（扩散和透明度由脚本逐帧算） */
+.pool-wave {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border: 1.5px solid rgba(165, 215, 250, 0.9);
+  transform: translate(-50%, -50%) scale(0.15);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 牵着超过 50 个粒子：池子外面一圈呼吸式的光晕（明暗由脚本逐帧算） */
+.pool-halo {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(150, 210, 250, 0.5), rgba(150, 210, 250, 0) 72%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s linear;
+}
+/* 释放按钮：平时灰着（disabled 状态），池子里攒够了才亮成蓝色 */
+.rail-btn-release:not(:disabled),
+.rail-card .rail-btn-release:not(:disabled):not(.on) {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #f6fbff;
+  opacity: 1;
+  box-shadow: 0 6px 18px var(--accent-soft);
+}
+.rail-card .rail-btn-release:not(:disabled):not(.on):hover {
+  background: var(--accent-grad);
+  border-color: transparent;
+  color: #f6fbff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px var(--accent-soft);
+}
+.pool-ripple {
+  position: absolute;
+  inset: 0.14rem;
+  border-radius: inherit;
+  border: 1px solid rgba(170, 220, 255, 0.7);
+  pointer-events: none;
+  animation: poolRipple 0.62s ease-out forwards;
+}
+@keyframes poolRipple {
+  from { transform: scale(0.55); opacity: 0.9; }
+  to { transform: scale(1.2); opacity: 0; }
 }
 
 @media (max-width: 60rem) {
   .side-rail { right: 0.55rem; }
+  .pool { right: 0.55rem; }
 }
 /* 768 以下整条右侧栏隐藏，手机上横着放会挡住内容 */
 @media (max-width: 48rem) {
   .side-rail { display: none !important; }
+  .pool { display: none !important; }
 }
 
 /* ===== 触摸屏：没有真正的 hover，点一下之后样式会"粘住"，全部关掉 ===== */
@@ -567,17 +680,33 @@ html[data-theme="dark"] .side-rail { display: flex; }
 <button type="button" class="theme-btn" id="theme-btn" aria-label="切换深浅色" title="切换深浅色">☾</button>
 
 <aside class="side-rail" aria-label="右侧工具栏">
-  <button type="button" class="rail-btn" id="unlimit-btn" aria-pressed="false" title="取消连线数量限制">
-    <svg class="rail-icon" viewBox="0 0 32 32" aria-hidden="true">
-      <circle cx="6.5" cy="8.5" r="1.6" fill="currentColor" opacity=".45"/>
-      <circle cx="25.5" cy="6.5" r="1.0" fill="currentColor" opacity=".32"/>
-      <circle cx="27" cy="24" r="1.4" fill="currentColor" opacity=".42"/>
-      <circle cx="7.5" cy="25.5" r="1.0" fill="currentColor" opacity=".32"/>
-      <text x="16" y="21.5" text-anchor="middle" font-size="16" fill="currentColor">∞</text>
-    </svg>
-  </button>
-  <span class="rail-tip">不知道有什么用的按钮</span>
+  <div class="rail-card">
+    <button type="button" class="rail-btn" id="unlimit-btn" aria-pressed="false" aria-label="无限吸附">
+      <svg class="rail-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="6.5" cy="8.5" r="1.6" fill="currentColor" opacity=".45"/>
+        <circle cx="25.5" cy="6.5" r="1.0" fill="currentColor" opacity=".32"/>
+        <circle cx="27" cy="24" r="1.4" fill="currentColor" opacity=".42"/>
+        <circle cx="7.5" cy="25.5" r="1.0" fill="currentColor" opacity=".32"/>
+        <text x="16" y="21.5" text-anchor="middle" font-size="16" fill="currentColor">∞</text>
+      </svg>
+    </button>
+
+    <button type="button" class="rail-btn rail-btn-release" id="release-btn" disabled aria-label="释放粒子">
+      <svg class="rail-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="5.5" r="1.5" fill="currentColor" opacity=".5"/>
+        <circle cx="10.5" cy="11" r="1.2" fill="currentColor" opacity=".4"/>
+        <circle cx="21.5" cy="11" r="1.2" fill="currentColor" opacity=".4"/>
+        <path d="M16 15v6.6M12.7 18.5 16 21.9l3.3-3.4" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.5 26.5h13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".38"/>
+      </svg>
+    </button>
+  </div>
 </aside>
+
+<div class="pool" id="pool" aria-hidden="true">
+  <span class="pool-halo" id="pool-halo"></span>
+</div>
 <div class="wrap">
 
     <!-- ===== 主定向栏：四个大区 ===== -->
@@ -1056,10 +1185,9 @@ html[data-theme="dark"] .side-rail { display: flex; }
   if (unlimitBtn) {
     unlimitBtn.addEventListener('click', function () {
       unlimited = !unlimited;
-      maxLink = unlimited ? 9999 : 5;
+      maxLink = unlimited ? 9999 : 3;
       unlimitBtn.classList.toggle('on', unlimited);
       unlimitBtn.setAttribute('aria-pressed', unlimited ? 'true' : 'false');
-      unlimitBtn.title = unlimited ? '已取消限制，再点恢复' : '取消连线数量限制';
     });
   }
 
@@ -1080,10 +1208,10 @@ html[data-theme="dark"] .side-rail { display: flex; }
 
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
-  var W = 0, H = 0, dots = [], raf = 0, running = false;
+  var W = 0, H = 0, dots = [], raf = 0, running = false, lastTs = 0;
   var LINK = 13000; // 距离的平方，约 114px 以内才连线
   var REACH = 165;  // 鼠标感应的半径
-  var maxLink = 5; // 鼠标最多连几根线，满了就顶掉最早连上的那根（右侧栏那个按钮能取消它）
+  var maxLink = 3; // 鼠标最多连几根线，满了就顶掉最早连上的那根（右侧栏那个按钮能取消它）
   var linked = [];  // 当前跟鼠标连着的点
   var mouse = { x: -9999, y: -9999 };
 
@@ -1108,6 +1236,7 @@ html[data-theme="dark"] .side-rail { display: flex; }
     var n = Math.min(narrow ? 60 : 160, Math.round((W * H) / (narrow ? 16000 : 12000)));
     dots = [];
     linked = [];
+    if (hand && hand.length) hand = [];
     for (var i = 0; i < n; i++) {
       // bx/by 是它自己的基础速度：被鼠标吸走以后，靠这两个值慢慢回到原来的漂移
       var vx = (Math.random() - 0.5) * 0.2;
@@ -1131,16 +1260,27 @@ html[data-theme="dark"] .side-rail { display: flex; }
     build();
   }
 
-  function frame() {
+  function frame(ts) {
+    ts = ts || 0;
+    var dt = lastTs ? Math.min(ts - lastTs, 120) : 16;
+    lastTs = ts;
     ctx.clearRect(0, 0, W, H);
     var i, j, a, b, dx, dy, d2, sp;
 
-    // 1. 点与点：够近才连一条极淡的线
+    // 1. 点与点：够近才连一条极淡的线；每个点最多连 10 条，刚放生出来的那批暂不封顶
     ctx.lineWidth = 1;
+    for (i = 0; i < dots.length; i++) dots[i].deg = 0;
+    var capNow = Date.now();
     for (i = 0; i < dots.length; i++) {
       a = dots[i];
+      if (a.hand) continue;
+      var capA = (a.freeUntil > capNow) ? 9999 : 10;
+      if (a.deg >= capA) continue;
       for (j = i + 1; j < dots.length; j++) {
         b = dots[j];
+        if (b.hand) continue;
+        var capB = (b.freeUntil > capNow) ? 9999 : 10;
+        if (b.deg >= capB) continue;
         dx = a.x - b.x;
         dy = a.y - b.y;
         d2 = dx * dx + dy * dy;
@@ -1150,12 +1290,15 @@ html[data-theme="dark"] .side-rail { display: flex; }
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
           ctx.stroke();
+          a.deg++;
+          b.deg++;
         }
       }
     }
 
     // 2. 鼠标/手指周围：最多连 maxLink 根，名额满了就顶掉最早连上的那根
-    if (mouse.x > -999) {
+    //    手上还攥着一批、或者处在放生后的 10 秒冷却期时，一个都不吸
+    if (mouse.x > -999 && !hand.length && Date.now() >= noAttractUntil) {
       // 先摘掉已经飘出范围的点
       for (i = linked.length - 1; i >= 0; i--) {
         b = linked[i];
@@ -1175,7 +1318,7 @@ html[data-theme="dark"] .side-rail { display: flex; }
       // 新飘进来的补名额
       for (i = 0; i < dots.length; i++) {
         a = dots[i];
-        if (a.linked) continue;
+        if (a.linked || a.hand) continue;
         dx = a.x - mouse.x;
         dy = a.y - mouse.y;
         if (dx * dx + dy * dy < REACH * REACH) {
@@ -1202,14 +1345,30 @@ html[data-theme="dark"] .side-rail { display: flex; }
         a.vy += dy * 0.00012;
       }
     } else if (linked.length) {
-      // 鼠标离开窗口：全部断开
+      // 鼠标离开窗口，或者正在放生冷却期：全部断开
       for (i = 0; i < linked.length; i++) linked[i].linked = false;
       linked.length = 0;
     }
 
+    // 2.5 池子：鼠标牵着的够多、又进了池子范围，就整批收走
+    checkPool();
+
     // 3. 移动、到边就绕到另一边、画点
     for (i = 0; i < dots.length; i++) {
       a = dots[i];
+      // 贴在鼠标上的那批：位置钉在鼠标周围，不参与漂移
+      if (a.hand) {
+        if (mouse.x > -999) {
+          // 极小幅度的剧烈抖动：在几个像素内乱跳，看着像一簇毛刺
+          a.x = mouse.x + (Math.random() - 0.5) * 3;
+          a.y = mouse.y + (Math.random() - 0.5) * 3;
+        }
+        ctx.fillStyle = 'rgba(190, 228, 255, 0.78)';
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
       // 被吸偏的速度慢慢回到它自己的基础速度，所以手移开后它们会散回原来的漂移
       a.vx = a.vx * 0.994 + a.bx * 0.006;
       a.vy = a.vy * 0.994 + a.by * 0.006;
@@ -1224,6 +1383,10 @@ html[data-theme="dark"] .side-rail { display: flex; }
       ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // 4. 池子：涟漪和呼吸灯
+    stepPoolFx(dt, ts);
+
     raf = requestAnimationFrame(frame);
   }
 
@@ -1249,11 +1412,208 @@ html[data-theme="dark"] .side-rail { display: flex; }
     running = false;
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
+    if (hand && hand.length) releaseHand();
     ctx.clearRect(0, 0, W, H);
   }
 
+  // ---------- 池子（深色模式）：把鼠标牵着的粒子收进去记账，再一次性放出来 ----------
+  var poolEl = document.getElementById('pool');
+  var releaseBtn = document.getElementById('release-btn');
+  var railCard = document.querySelector('.rail-card');
+  var POOL_MIN = 50;     // 鼠标至少牵着这么多，池子才收
+  var RELEASE_CAP = 400; // 一次最多放出这么多，防止卡
+  var poolCount = 0;     // 池子里的账
+  var hand = [];         // 贴在鼠标上的那批
+  var noAttractUntil = 0; // 放生后的冷却截止时间：这段时间里鼠标一个粒子都不吸
+  var poolHalo = document.getElementById('pool-halo');
+  var ripples = [];      // 正在往外散的那几圈
+  var rippleTimer = 0;   // 距离下一圈还差多久
+  var handArmedAt = 0;   // 刚点按钮那一瞬间不算「松手」
+
+  function placePool() {
+    if (!poolEl || !railCard) return;
+    if (root.getAttribute('data-theme') !== 'dark') return;
+    var r = railCard.getBoundingClientRect();
+    if (!r.height) return;
+    poolEl.style.top = Math.round(r.bottom + 14) + 'px';
+  }
+
+  function paintPool() {
+    if (!poolEl) return;
+    if (releaseBtn) releaseBtn.disabled = !(poolCount > 0 && hand.length === 0);
+  }
+
+  function inPool(x, y) {
+    if (!poolEl) return false;
+    var r = poolEl.getBoundingClientRect();
+    if (!r.width) return false;
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+
+  function ripple() {
+    if (!poolEl) return;
+    var s = document.createElement('span');
+    s.className = 'pool-ripple';
+    poolEl.appendChild(s);
+    setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 640);
+  }
+
+  function poolCenter() {
+    var r = poolEl.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+
+  function spawnWave(alpha) {
+    var s = document.createElement('span');
+    s.className = 'pool-wave';
+    s.style.borderColor = 'rgba(165, 215, 250, ' + alpha.toFixed(3) + ')';
+    poolEl.appendChild(s);
+    ripples.push({
+      el: s,
+      t0: (window.performance && performance.now) ? performance.now() : Date.now(),
+      life: 1900
+    });
+  }
+
+  // 池子的常驻动效：开了无限吸附就一直往外散圈，亮度跟着牵引数走，鼠标离得越近散得越快
+  function stepPoolFx(dt, ts) {
+    if (!poolEl) return;
+    var pulling = hand.length ? hand.length : linked.length;
+    var k = Math.min(pulling / 50, 1);
+    var alpha = 0.05 + 0.92 * k;
+
+    if (root.getAttribute('data-theme') === 'dark' && unlimited) {
+      var c = poolCenter();
+      var d = 900;
+      if (mouse.x > -999) {
+        var ddx = mouse.x - c.x;
+        var ddy = mouse.y - c.y;
+        d = Math.sqrt(ddx * ddx + ddy * ddy);
+      }
+      var interval = 1000 + 2000 * Math.min(d / 600, 1); // 最近 1 秒一圈，最远 3 秒一圈
+      rippleTimer += dt;
+      if (rippleTimer >= interval) {
+        rippleTimer = 0;
+        spawnWave(alpha);
+      }
+    }
+
+    // 涟漪：由内向外扩散，半径前快后慢
+    var now = (window.performance && performance.now) ? performance.now() : ts;
+    for (var i = ripples.length - 1; i >= 0; i--) {
+      var rp = ripples[i];
+      var p = (now - rp.t0) / rp.life;
+      if (p >= 1 || !rp.el.parentNode) {
+        if (rp.el.parentNode) rp.el.parentNode.removeChild(rp.el);
+        ripples.splice(i, 1);
+        continue;
+      }
+      // 半径前快后慢，最大只到池子边缘，不往外冒
+      var grow = (1 - 1 / (1 + 5.5 * p)) / 0.846;
+      rp.el.style.transform = 'translate(-50%, -50%) scale(' + (0.08 + grow * 0.9).toFixed(3) + ')';
+      rp.el.style.opacity = (1 - p).toFixed(3);
+    }
+
+    // 牵着超过 50 个：外面那圈光晕慢慢亮起来，呼吸式明暗
+    if (poolHalo) {
+      var over = Math.max(0, pulling - 50);
+      var g = Math.min(over / 100, 1);
+      if (g > 0) {
+        var breath = 0.5 + 0.5 * Math.sin(ts / 760);
+        poolHalo.style.opacity = ((0.12 + 0.72 * breath) * g).toFixed(3);
+      } else {
+        poolHalo.style.opacity = '0';
+      }
+    }
+  }
+
+  // 每帧看一眼：牵得够多、又进了池子，就整批收走
+  function checkPool() {
+    if (hand.length) return;
+    if (linked.length < POOL_MIN) return;
+    if (!inPool(mouse.x, mouse.y)) return;
+    var n = linked.length;
+    for (var i = 0; i < linked.length; i++) {
+      var d = linked[i];
+      d.linked = false;
+      var k = dots.indexOf(d);
+      if (k >= 0) dots.splice(k, 1);
+    }
+    linked.length = 0;
+    poolCount += n;
+    paintPool();
+    ripple();
+    if (poolEl) {
+      poolEl.classList.add('full');
+      setTimeout(function () { if (poolEl) poolEl.classList.remove('full'); }, 260);
+    }
+  }
+
+  // 放生：按池子里的账，在鼠标位置生成同样多的点，钉在鼠标上
+  function spawnHand() {
+    if (releaseBtn && releaseBtn.disabled) return;
+    var n = Math.min(poolCount, RELEASE_CAP);
+    if (n <= 0) return;
+    poolCount = 0;
+    hand = [];
+    // 鼠标要是在窗口外，就落在屏幕中间，免得一群点飞到画面外
+    var mx = mouse.x > -999 ? mouse.x : Math.round(window.innerWidth / 2);
+    var my = mouse.y > -999 ? mouse.y : Math.round(window.innerHeight / 2);
+    for (var i = 0; i < n; i++) {
+      var vx = (Math.random() - 0.5) * 1.2;
+      var vy = (Math.random() - 0.5) * 1.2;
+      var d = {
+        x: mx, y: my,
+        vx: vx, vy: vy, bx: vx * 0.3, by: vy * 0.3,
+        r: 0.7 + Math.random() * 1.1,
+        linked: false,
+        hand: true
+      };
+      dots.push(d);
+      hand.push(d);
+    }
+    handArmedAt = Date.now();
+    paintPool();
+  }
+
+  function releaseHand() {
+    if (!hand.length) return;
+    // 放出去以后，鼠标 10 秒内吸不动任何粒子，让这波散开能看完整
+    noAttractUntil = Date.now() + 10000;
+    for (var i = 0; i < hand.length; i++) {
+      var d = hand[i];
+      d.hand = false;
+      d.freeUntil = noAttractUntil; // 冷却这段时间里，它们的连线数量不封顶
+      d.vx = (Math.random() - 0.5) * 1.4;
+      d.vy = (Math.random() - 0.5) * 1.4;
+      d.bx = d.vx * 0.3;
+      d.by = d.vy * 0.3;
+    }
+    hand = [];
+    paintPool();
+  }
+
+  if (releaseBtn) releaseBtn.addEventListener('click', spawnHand);
+
+  // 松手：左键点一下就放出去（刚按下放生按钮那一下不算）
+  window.addEventListener('mousedown', function (e) {
+    if (!hand.length) return;
+    if (Date.now() - handArmedAt < 250) return;
+    if (e.target === releaseBtn) return;
+    releaseHand();
+  });
+  window.addEventListener('touchstart', function () {
+    if (!hand.length) return;
+    if (Date.now() - handArmedAt < 250) return;
+    releaseHand();
+  }, { passive: true });
+
+  paintPool();
+  placePool();
+
   new MutationObserver(function () {
     if (root.getAttribute('data-theme') === 'dark') start(); else stop();
+    setTimeout(placePool, 60);
   }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
 
   document.addEventListener('visibilitychange', function () {
@@ -1267,11 +1627,13 @@ html[data-theme="dark"] .side-rail { display: flex; }
       var was = running;
       if (was) stop();
       resize();
+      placePool();
       if (was) start();
     }, 180);
   });
 
   resize();
+  placePool();
   start();
 })();
 </script>
